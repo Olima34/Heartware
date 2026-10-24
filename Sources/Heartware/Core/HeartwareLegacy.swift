@@ -88,18 +88,24 @@ enum HeartwareLegacy {
         return report.removed == 1 ? "NOUVEAU NOM : \(old) versé dans \(ActionLog.folder)" : "NOUVEAU NOM : \(old) vidé, resté en place"
     }
 
-    /// The old data folder takes the new place. Both there means the new one was made without the app's data (a test,
-    /// a command run from a terminal): it goes to the Trash first, the data of the copy that ran until now wins.
+    /// The old data folder takes the new place. Both there means the new one was made without the app's data (a test, a
+    /// command run from a terminal, macOS's own folder made before): the old one's files take their place one by one, a
+    /// file of the same name in the new one going first, and the emptied old folder goes to the Trash. The app protects its
+    /// own data folder from the Trash, hence file by file.
     private static func takeOverData(_ old: String) -> String? {
         let fm = FileManager.default
         guard fm.fileExists(atPath: old) else { return nil }
-        if fm.fileExists(atPath: DataStore.folder) {
-            let report = Remover.remove([RemovalEntry(path: DataStore.folder, size: FileSizer.size(of: DataStore.folder))], mode: .trash)
-            guard report.removed == 1 else {
-                return "NOUVEAU NOM : \(old) reste en place, \(DataStore.folder) n'a pas pu aller à la Corbeille"
-            }
+        guard fm.fileExists(atPath: DataStore.folder) else { return move(old, to: DataStore.folder) }
+        var moved = 0
+        for name in (try? fm.contentsOfDirectory(atPath: old)) ?? [] {
+            let target = DataStore.folder + "/" + name
+            if fm.fileExists(atPath: target) || FS.isSymlink(target), !Remover.removeInternal(target) { continue }
+            if (try? FileOps.move(URL(fileURLWithPath: old + "/" + name), to: URL(fileURLWithPath: target))) != nil { moved += 1 }
         }
-        return move(old, to: DataStore.folder)
+        let left = (try? fm.contentsOfDirectory(atPath: old)) ?? ["?"]
+        guard left.isEmpty else { return "NOUVEAU NOM : \(moved) éléments de \(old) repris, \(left.count) restés en place" }
+        let report = Remover.remove([RemovalEntry(path: old, size: 0)], mode: .trash)
+        return "NOUVEAU NOM : \(old) repris dans \(DataStore.folder) (\(moved) éléments)" + (report.removed == 1 ? "" : ", le dossier vide reste en place")
     }
 
     /// The old folder moves to the new place unless that one exists already; what happened, for the journal.
