@@ -119,9 +119,34 @@ final class AppModel {
     var page: Page = .dashboard {
         didSet {
             guard page != oldValue else { return }
+            if !walkingHistory {
+                backPages.append(oldValue)
+                if backPages.count > 50 { backPages.removeFirst() }
+                forwardPages.removeAll()
+            }
             profile.recordVisit(page)
             refuge.visited(page)
         }
+    }
+    /// The pages left behind, and those left by going back: the ‹ › of the toolbar, ⌘[ and ⌘].
+    private(set) var backPages: [Page] = []
+    private(set) var forwardPages: [Page] = []
+    @ObservationIgnored private var walkingHistory = false
+
+    func goBack() {
+        guard let p = backPages.popLast() else { return }
+        forwardPages.append(page)
+        walkingHistory = true
+        page = p
+        walkingHistory = false
+    }
+
+    func goForward() {
+        guard let p = forwardPages.popLast() else { return }
+        backPages.append(page)
+        walkingHistory = true
+        page = p
+        walkingHistory = false
     }
     let monitor: SystemMonitor
     let cleanup = CleanupModel()

@@ -245,7 +245,7 @@ struct ClipboardWindowSettings: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 8)
         .frame(height: 38)
-        .background(Theme.sidebar.opacity(0.6))
+        .background(Theme.fill1)
     }
 
     // MARK: Pieces
@@ -362,7 +362,7 @@ struct ClipboardWindowActivation: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 8)
             .frame(height: 38)
-            .background(Theme.sidebar.opacity(0.6))
+            .background(Theme.fill1)
         }
     }
 

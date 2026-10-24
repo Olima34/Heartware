@@ -8,11 +8,10 @@ struct OnboardingModal: View {
     var body: some View {
         ZStack {
             // The only fixed color: a veil that darkens whatever theme is behind it.
-            Color.black.opacity(0.35)
+            Color.black.opacity(0.25)
                 .contentShape(Rectangle())
                 .onTapGesture {}
             OnboardingPanel()
-                .themedShadow(color: .black.opacity(0.35), radius: 30, y: 12)
                 .transition(.scale(scale: 0.97).combined(with: .opacity))
         }
         .ignoresSafeArea()
@@ -78,9 +77,7 @@ struct OnboardingPanel: View {
             footer
         }
         .frame(width: Self.width, height: Self.height)
-        .background(RoundedRectangle(cornerRadius: Theme.r(20), style: .continuous).fill(Theme.bg))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(20), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: Theme.line))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r(20), style: .continuous))
+        .floatingSurface(radius: 20)
         .onAppear {
             swipe.start(follow: { follow($0) }, settle: { settle($0) }, turn: { go(to: index + $0) })
         }

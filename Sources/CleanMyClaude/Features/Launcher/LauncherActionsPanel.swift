@@ -45,9 +45,7 @@ struct LauncherActionsPanel: View {
             .padding(.vertical, 11)
         }
         .frame(width: Self.width)
-        .background(RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous).fill(Theme.cardRaised))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: Theme.line))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous))
+        .floatingSurface(radius: 10)
         .themedShadow(color: .black.opacity(0.28), radius: 18, y: 6)
         .onAppear { DispatchQueue.main.async { focused = true } }
         .onChange(of: model.openWithApps == nil) { _, _ in DispatchQueue.main.async { focused = true } }
@@ -152,7 +150,13 @@ struct LauncherActionRow: View {
         }
         .padding(.horizontal, 8)
         .frame(height: LauncherActionsPanel.rowHeight)
-        .background(RoundedRectangle(cornerRadius: Theme.r(8)).fill(selected ? (action.destructive ? Theme.bad.opacity(0.14) : Theme.accent.opacity(0.16)) : .clear))
+        .background {
+            if selected && action.destructive {
+                RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).fill(Theme.bad.opacity(0.14))
+            } else if selected {
+                StillBubble(radius: 8)
+            }
+        }
     }
 }
 
@@ -172,7 +176,7 @@ struct LauncherOpenWithRow: View {
         }
         .padding(.horizontal, 8)
         .frame(height: LauncherActionsPanel.rowHeight)
-        .background(RoundedRectangle(cornerRadius: Theme.r(8)).fill(selected ? Theme.accent.opacity(0.16) : .clear))
+        .background { if selected { StillBubble(radius: 8) } }
     }
 }
 
@@ -187,7 +191,7 @@ struct LauncherKeyCaps: View {
                     .font(.ui(10.5, .medium)).foregroundStyle(Theme.text2)
                     .frame(minWidth: 19, minHeight: 19)
                     .padding(.horizontal, key.count > 1 ? 4 : 0)
-                    .background(RoundedRectangle(cornerRadius: Theme.r(5)).fill(Theme.track))
+                    .background(RoundedRectangle(cornerRadius: Theme.r(5), style: .continuous).fill(Theme.fill2))
             }
         }
     }
@@ -231,7 +235,7 @@ struct LauncherQuickLookPanel: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
-            .background(Theme.sidebar.opacity(0.6))
+            .background(Theme.fill1)
         }
     }
 }

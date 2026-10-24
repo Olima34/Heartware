@@ -83,7 +83,7 @@ struct TranslatorPanelView: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
-            .background(Theme.sidebar.opacity(0.6))
+            .background(Theme.fill1)
         }
     }
 
@@ -259,7 +259,7 @@ struct TranslatorSettingsView: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
-            .background(Theme.sidebar.opacity(0.6))
+            .background(Theme.fill1)
         }
         .task { await app.translator.refreshLanguageStatuses() }
     }

@@ -19,9 +19,8 @@ struct LauncherView: View {
             }
         }
         .frame(width: Self.width, height: Self.height)
-        .background(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous).fill(Theme.bg))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: Theme.line))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous))
+        // The command palette: frosted glass above the other windows, macOS draws its shadow.
+        .floatingSurface(radius: 14, shadow: false, ownWindow: true)
         .background(TranslatorHost(channel: .launcher))
         .onAppear {
             DispatchQueue.main.async {
@@ -46,18 +45,18 @@ struct LauncherView: View {
         return VStack(spacing: 0) {
             HStack(spacing: 12) {
                 if files {
-                    CommandIconView(icon: .symbol("doc.text.magnifyingglass", Theme.accent), size: 26)
+                    CommandIconView(icon: .symbol("doc.text.magnifyingglass", Theme.accent), size: 24)
                 } else {
-                    BrandMark(size: 22)
+                    BrandMark(size: 20)
                 }
                 if Snapshot.isActive {
-                    Text(model.query.isEmpty ? placeholder : model.query).font(.ui(21))
+                    Text(model.query.isEmpty ? placeholder : model.query).font(.ui(17))
                         .foregroundStyle(model.query.isEmpty ? Theme.text3 : Theme.text)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     TextField(placeholder, text: $model.query)
                         .textFieldStyle(.plain)
-                        .font(.ui(21))
+                        .font(.ui(17))
                         .foregroundStyle(Theme.text)
                         .focused($focused)
                 }
@@ -70,7 +69,7 @@ struct LauncherView: View {
                 if files { LauncherIndexBadge() }
             }
             .padding(.horizontal, 18)
-            .padding(.vertical, 15)
+            .frame(height: 50)
             Rectangle().fill(Theme.border).frame(height: 1)
             HStack(spacing: 0) {
                 results
@@ -85,7 +84,7 @@ struct LauncherView: View {
                         .frame(width: Self.previewWidth)
                 }
             }
-            .frame(height: Self.height - 58 - 38 - 2, alignment: .top)
+            .frame(height: Self.height - 50 - 38 - 2, alignment: .top)
             .overlay(alignment: .bottomTrailing) {
                 if model.actionsTarget != nil {
                     ZStack(alignment: .bottomTrailing) {
@@ -137,7 +136,7 @@ struct LauncherView: View {
             }
             ForEach(Array(model.sections.enumerated()), id: \.element.id) { si, section in
                 Text(section.title.uppercased())
-                    .font(.ui(10, .semibold)).tracking(0.7).foregroundStyle(Theme.text3)
+                    .font(.ui(11, .semibold)).tracking(0.66).foregroundStyle(Theme.text3)
                     .padding(.horizontal, 18).padding(.top, 10).padding(.bottom, 4)
                 // Identified by their place in the whole list, like `.id(index)`: the arrows scroll to the right row,
                 // never to the row of another section that has the same place in its own.
@@ -219,8 +218,8 @@ struct LauncherView: View {
             }
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 8)
-        .background(Theme.sidebar.opacity(0.6))
+        .frame(height: 38)
+        .background(Theme.fill1)
     }
 
     private func hint(_ key: String, _ label: String) -> some View {
@@ -245,7 +244,7 @@ struct LauncherRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            CommandIconView(icon: command.icon, size: 26)
+            CommandIconView(icon: command.icon, size: 24)
                 .overlay(alignment: .bottomTrailing) {
                     if marked {
                         Image(systemName: "checkmark")
@@ -257,7 +256,7 @@ struct LauncherRow: View {
                     }
                 }
             VStack(alignment: .leading, spacing: 1) {
-                Text(command.title).font(.ui(13.5, selected ? .medium : .regular)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(command.title).font(.ui(13, selected ? .medium : .regular)).foregroundStyle(Theme.text).lineLimit(1)
                 if let s = command.subtitle, !s.isEmpty {
                     Text(s).font(.ui(11)).foregroundStyle(Theme.text3).lineLimit(1).truncationMode(.middle)
                 }
@@ -272,13 +271,17 @@ struct LauncherRow: View {
             if let hotkey {
                 Text(hotkey).font(.ui(10.5, .semibold)).foregroundStyle(Theme.text2)
                     .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: Theme.r(5)).fill(Theme.track))
+                    .background(RoundedRectangle(cornerRadius: Theme.r(5), style: .continuous).fill(Theme.fill2))
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: Theme.r(9)).fill(Theme.accent.opacity(selected ? (marked ? 0.24 : 0.16) : (marked ? 0.09 : 0))))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(9)).strokeBorder(Theme.accent.opacity(marked ? 0.4 : 0), lineWidth: Theme.line))
+        .frame(minHeight: 38)
+        // The active row carries the glass bubble; files picked for a drag keep the faint accent.
+        .background {
+            let shape = RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous)
+            if marked { shape.fill(Theme.accentSoft).overlay { shape.strokeBorder(Theme.accentRim, lineWidth: Theme.line) } }
+            if selected { StillBubble(radius: 8) }
+        }
         .padding(.horizontal, 6)
         .contentShape(Rectangle())
     }
@@ -328,11 +331,13 @@ struct CommandIconView: View {
     var body: some View {
         switch icon {
         case .symbol(let name, let tint):
+            // A neutral vignette, unless the theme tints its icons.
+            let tinted = Theme.icons == .tinted
             Image(systemName: name)
                 .font(.system(size: size * 0.48, weight: .medium))
-                .foregroundStyle(tint)
+                .foregroundStyle(tinted ? tint : Theme.text2)
                 .frame(width: size, height: size)
-                .background(RoundedRectangle(cornerRadius: Theme.r(size * 0.26)).fill(tint.opacity(0.13)))
+                .background(RoundedRectangle(cornerRadius: Theme.r(size * 0.26), style: .continuous).fill(tinted ? tint.opacity(0.13) : Theme.fill2))
         case .file(let path):
             FileIcon(path: path, size: size)
         case .emoji(let e):
@@ -382,7 +387,7 @@ struct LauncherAssignView: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
-            .background(Theme.sidebar.opacity(0.6))
+            .background(Theme.fill1)
         }
     }
 }
@@ -396,7 +401,7 @@ struct LauncherKeyHint: View {
         HStack(spacing: 5) {
             Text(key).font(.ui(10.5, .semibold)).foregroundStyle(Theme.text2)
                 .padding(.horizontal, 5).padding(.vertical, 1.5)
-                .background(RoundedRectangle(cornerRadius: Theme.r(4)).fill(Theme.track))
+                .background(RoundedRectangle(cornerRadius: Theme.r(5), style: .continuous).fill(Theme.fill2))
             Text(label).font(.ui(11)).foregroundStyle(Theme.text3)
         }
     }
@@ -496,7 +501,7 @@ struct LauncherFilesEmpty: View {
         HStack(spacing: 10) {
             Text(typed).font(.mono(11.5, .medium)).foregroundStyle(Theme.text)
                 .padding(.horizontal, 6).padding(.vertical, 2)
-                .background(RoundedRectangle(cornerRadius: Theme.r(5)).fill(Theme.track))
+                .background(RoundedRectangle(cornerRadius: Theme.r(5), style: .continuous).fill(Theme.fill2))
             Text(what).font(.ui(12)).foregroundStyle(Theme.text3)
         }
     }

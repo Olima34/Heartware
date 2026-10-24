@@ -175,10 +175,10 @@ extension ThemePalette: Codable {
         init?(intValue: Int) { nil }
     }
 
-    /// Missing or broken colors (a theme pasted by hand) fall back on Atelier.
+    /// Missing or broken colors (a theme pasted by hand) fall back on Graphite.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Key.self)
-        let fallback = decoder.codingPath.last?.stringValue == "dark" ? ThemeSpec.atelier.dark : ThemeSpec.atelier.light
+        let fallback = decoder.codingPath.last?.stringValue == "dark" ? ThemeSpec.base.dark : ThemeSpec.base.light
         var values: [ThemeColorKey: ThemeColor] = [:]
         for k in ThemeColorKey.allCases {
             values[k] = (try? c.decodeIfPresent(ThemeColor.self, forKey: Key(k.rawValue))) ?? fallback[k]
@@ -348,10 +348,10 @@ extension ThemeSpec: Codable {
         case textScale, radius, borderWidth, elevation, icons, backdrop, mascot
     }
 
-    /// Every missing field falls back on Atelier: a theme written by hand only needs what it changes.
+    /// Every missing field falls back on Graphite: a theme written by hand only needs what it changes.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        let base = ThemeSpec.atelier
+        let base = ThemeSpec.base
         func value<T: Decodable>(_ key: CodingKeys, _ fallback: T) -> T {
             (try? c.decodeIfPresent(T.self, forKey: key)) ?? fallback
         }
@@ -386,7 +386,7 @@ extension ThemeSpec: Codable {
     }
 }
 
-// MARK: - The five built-in themes
+// MARK: - The six built-in themes
 
 extension ThemePalette {
     fileprivate static func make(bg: UInt32, sidebar: UInt32, card: UInt32, cardRaised: UInt32, hover: UInt32,
@@ -405,7 +405,46 @@ extension ThemePalette {
 }
 
 extension ThemeSpec {
-    static let builtIns: [ThemeSpec] = [atelier, graphite, phosphore, sorbet, minuit]
+    static let builtIns: [ThemeSpec] = [graphite, graphitePur, atelier, phosphore, sorbet, minuit]
+    /// The default look, and what a theme written by hand starts from.
+    static let base = graphite
+
+    /// The design system shared by all of the author's apps (Graphite · Arc × macOS 27): cold neutral greys for more than 90 %
+    /// of the screen, one accent (the steel blue of the icon's mountain), depth from glass and light rather than color.
+    static let graphite = ThemeSpec(
+        id: "graphite", name: "Graphite",
+        summary: "Le thème de Chamois : gris froids, verre et lumière, un seul accent bleu acier. Suit le mode clair ou sombre de macOS.",
+        appearance: .system,
+        light: .make(bg: 0xF5F5F7, sidebar: 0xF0F0F3, card: 0xFFFFFF, cardRaised: 0xFFFFFF, hover: 0xEBEBED,
+                     selected: 0xE1E1E3, track: 0xE9E9EB, border: 0xE4E4E6, borderStrong: 0xD8D8DA,
+                     text: 0x1D1D1E, text2: 0x676768, text3: 0x86868A, accent: 0x3773EB, onAccent: 0xFFFFFF,
+                     good: 0x2F9563, warn: 0xB07A1E, bad: 0xD0493E, brand: 0x3773EB, matrix: 0xC9C9CD,
+                     chart: [0x3773EB, 0x5E7697, 0x6E8A68, 0xA8925F, 0x8371A0, 0x56606B, 0x7D8899, 0x9AA0A8, 0x4A5058, 0xC2C4C8]),
+        dark: .make(bg: 0x121215, sidebar: 0x1C1D21, card: 0x1A1A1D, cardRaised: 0x1F1F21, hover: 0x1D1E20,
+                    selected: 0x2C2C2E, track: 0x202023, border: 0x222225, borderStrong: 0x2E2E31,
+                    text: 0xF1F1F1, text2: 0xA5A5A6, text3: 0x717172, accent: 0x5B8DEF, onAccent: 0xFFFFFF,
+                    good: 0x4CB782, warn: 0xE0A443, bad: 0xE5675C, brand: 0x5B8DEF, matrix: 0x3A3A3E,
+                    chart: [0x5B8DEF, 0x7F95B2, 0x8FA58A, 0xC2AE8C, 0xA190B8, 0x6F7A86, 0x5A6B85, 0x9AA1AB, 0x4E545C, 0x3D3D41]),
+        titleFont: .sans, titleWeight: .bold, bodyFont: .sans, textScale: 1, radius: 1, borderWidth: 1,
+        elevation: .subtle, icons: .mono, backdrop: false, mascot: true)
+
+    /// The same greys without any accent (the selection in ink), square corners, no ornament and no decorative icon.
+    static let graphitePur = ThemeSpec(
+        id: "graphite-pur", name: "Graphite pur",
+        summary: "Le gris de Graphite sans aucun accent : une seule encre, angles droits, ni icônes décoratives ni mascotte.",
+        appearance: .system,
+        light: .make(bg: 0xF5F5F7, sidebar: 0xF0F0F3, card: 0xFFFFFF, cardRaised: 0xFFFFFF, hover: 0xEBEBED,
+                     selected: 0xE1E1E3, track: 0xE9E9EB, border: 0xE0E0E2, borderStrong: 0xC4C4C7,
+                     text: 0x1D1D1E, text2: 0x5E5E60, text3: 0x7E7E82, accent: 0x1D1D1E, onAccent: 0xFFFFFF,
+                     good: 0x2F6B4C, warn: 0x86651B, bad: 0xA3372D, brand: 0x1D1D1E, matrix: 0xC9C9CD,
+                     chart: [0x1D1D1E, 0x5E5E60, 0x8F8F92, 0xB9B9BC, 0x373739, 0x747477, 0xA4A4A7, 0x2A2A2C, 0xCDCDD0, 0x4B4B4E]),
+        dark: .make(bg: 0x121215, sidebar: 0x1C1D21, card: 0x1A1A1D, cardRaised: 0x1F1F21, hover: 0x1D1E20,
+                    selected: 0x2C2C2E, track: 0x202023, border: 0x2A2A2D, borderStrong: 0x454549,
+                    text: 0xF1F1F1, text2: 0xA5A5A6, text3: 0x7C7C7E, accent: 0xF1F1F1, onAccent: 0x121215,
+                    good: 0x7DB894, warn: 0xCCA75E, bad: 0xDB7A6F, brand: 0xF1F1F1, matrix: 0x3A3A3E,
+                    chart: [0xF1F1F1, 0xA5A5A6, 0x737376, 0x4F4F52, 0xCACACC, 0x8C8C8F, 0x5E5E61, 0xDCDCDE, 0x404043, 0xB8B8BA]),
+        titleFont: .sans, titleWeight: .semibold, bodyFont: .sans, textScale: 1, radius: 0, borderWidth: 1,
+        elevation: .flat, icons: .hidden, backdrop: false, mascot: false)
 
     /// The original look, shared with ClaudeStats: warm paper, serif titles, Claude blue.
     static let atelier = ThemeSpec(
@@ -424,24 +463,6 @@ extension ThemeSpec {
                     chart: [0x4C9AE6, 0x5BA3A0, 0x8DA47E, 0xD4A27F, 0x9B87C4, 0xC46686, 0x7C83D6, 0xCBB26A, 0x8E8B82, 0xB0856A]),
         titleFont: .serif, titleWeight: .regular, bodyFont: .sans, textScale: 1, radius: 1, borderWidth: 1,
         elevation: .subtle, icons: .tinted, backdrop: true, mascot: true)
-
-    /// The opposite of an AI app: neutral greys, one ink, square corners, no ornament and no decorative icon.
-    static let graphite = ThemeSpec(
-        id: "graphite", name: "Graphite",
-        summary: "Sobre et sans fioritures : gris neutres, une seule encre, angles droits, ni icônes décoratives ni mascotte.",
-        appearance: .system,
-        light: .make(bg: 0xF2F2F2, sidebar: 0xE8E8E8, card: 0xFFFFFF, cardRaised: 0xFFFFFF, hover: 0xE3E3E3,
-                     selected: 0xD9D9D9, track: 0xE4E4E4, border: 0xD0D0D0, borderStrong: 0xA6A6A6,
-                     text: 0x111111, text2: 0x4A4A4A, text3: 0x7A7A7A, accent: 0x111111, onAccent: 0xFFFFFF,
-                     good: 0x2F6B4C, warn: 0x86651B, bad: 0xA3372D, brand: 0x111111, matrix: 0xBDBDBD,
-                     chart: [0x111111, 0x5E5E5E, 0x8F8F8F, 0xB9B9B9, 0x373737, 0x747474, 0xA4A4A4, 0x232323, 0xCDCDCD, 0x4B4B4B]),
-        dark: .make(bg: 0x121212, sidebar: 0x0B0B0B, card: 0x191919, cardRaised: 0x202020, hover: 0x232323,
-                    selected: 0x2C2C2C, track: 0x262626, border: 0x2E2E2E, borderStrong: 0x4C4C4C,
-                    text: 0xEDEDED, text2: 0xA8A8A8, text3: 0x7C7C7C, accent: 0xEDEDED, onAccent: 0x111111,
-                    good: 0x7DB894, warn: 0xCCA75E, bad: 0xDB7A6F, brand: 0xEDEDED, matrix: 0x3A3A3A,
-                    chart: [0xEDEDED, 0xA8A8A8, 0x737373, 0x4F4F4F, 0xCACACA, 0x8C8C8C, 0x5E5E5E, 0xDCDCDC, 0x404040, 0xB8B8B8]),
-        titleFont: .sans, titleWeight: .medium, bodyFont: .sans, textScale: 1, radius: 0, borderWidth: 1,
-        elevation: .flat, icons: .hidden, backdrop: false, mascot: false)
 
     /// An old green-phosphor terminal: black glass, monospaced type, ANSI colors.
     static let phosphore = ThemeSpec(
@@ -507,7 +528,8 @@ enum ThemeChecks {
         func expect(_ ok: Bool, _ message: @autoclosure () -> String) { if !ok { failures.append("Thèmes : " + message()) } }
 
         expect(Set(ThemeSpec.builtIns.map(\.id)).count == ThemeSpec.builtIns.count, "identifiants en double")
-        expect(ThemeSpec.builtIns.count == 5, "il faut cinq thèmes de base")
+        expect(ThemeSpec.builtIns.count == 6, "il faut six thèmes de base")
+        expect(ThemeSpec.builtIns.first == .base, "le thème par défaut doit ouvrir la liste")
         for t in ThemeSpec.builtIns {
             for v in t.variants {
                 let p = t.palette(v)
@@ -538,8 +560,8 @@ enum ThemeChecks {
         let partial = ##"{"name":"Mini","radius":9,"light":{"accent":"#f60"},"icons":"inconnu"}"##
         if let t = try? JSONDecoder().decode(ThemeSpec.self, from: Data(partial.utf8)) {
             expect(t.name == "Mini" && t.radius == ThemeSpec.radiusRange.upperBound, "un thème partiel n'est pas complété ni borné")
-            expect(t.light[.accent] == ThemeColor(0xFF6600) && t.light[.bg] == ThemeSpec.atelier.light[.bg], "couleurs partielles mal complétées")
-            expect(t.icons == ThemeSpec.atelier.icons, "une valeur inconnue devrait revenir au réglage d'Atelier")
+            expect(t.light[.accent] == ThemeColor(0xFF6600) && t.light[.bg] == ThemeSpec.base.light[.bg], "couleurs partielles mal complétées")
+            expect(t.icons == ThemeSpec.base.icons, "une valeur inconnue devrait revenir au réglage de Graphite")
         } else {
             expect(false, "un thème partiel devrait se charger")
         }
@@ -556,7 +578,7 @@ enum ThemeChecks {
         let previous = shared.active.id
         let changed = CancelFlag()
         withObservationTracking { _ = Theme.accent } onChange: { changed.cancel() }
-        shared.select(previous == "graphite" ? "sorbet" : "graphite")
+        shared.select(previous == "graphite-pur" ? "sorbet" : "graphite-pur")
         expect(changed.isCancelled, "changer de thème ne redessinerait pas les vues")
         shared.select(previous)
 
@@ -573,7 +595,7 @@ enum ThemeChecks {
         expect(!store.importJSON("pas du JSON"), "un texte quelconque est accepté comme thème")
         store.delete(store.active.id)
         store.delete(mine.id)
-        expect(store.customs.isEmpty && store.active == .atelier, "suppression d'un thème perso")
+        expect(store.customs.isEmpty && store.active == .base, "suppression d'un thème perso")
 
         // Harmonizing Atelier from its three base colors lands close to the hand-made shades.
         for (v, p) in [(ThemeVariant.light, ThemeSpec.atelier.light), (.dark, ThemeSpec.atelier.dark)] {

@@ -97,8 +97,9 @@ struct YouTubeActivityCard: View {
                 .padding(.trailing, 4)
             }
         }
-        .background(RoundedRectangle(cornerRadius: Theme.r(10)).fill(hovering || showList ? Theme.hover : Theme.card))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(10)).strokeBorder(Theme.border, lineWidth: Theme.line))
+        // The sidebar's floating module: an activity under way takes the accent.
+        .floatingSurface(radius: 12, shadow: false)
+        .overlay { RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous).fill(hovering || showList ? Theme.fill1 : .clear).allowsHitTesting(false) }
         .onHover { hovering = $0 }
         .popover(isPresented: $showList, arrowEdge: .trailing) {
             YouTubeQueueView()
@@ -124,14 +125,15 @@ struct YouTubeActivityCard: View {
                     Image(systemName: "clock").font(.ui(11)).foregroundStyle(Theme.text3)
                 }
             }
-            UsageBar(fraction: activity.progress ?? 0, tint: YouTubeStyle.tint, height: 4)
+            UsageBar(fraction: activity.progress ?? 0, tint: Theme.accent, height: 4)
                 .opacity(activity.progress == nil ? 0.35 : 1)
             Text(shortDetail(activity))
                 .font(.ui(10.5))
                 .foregroundStyle(Theme.text3)
                 .lineLimit(1)
         }
-        .padding(10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     /// Nothing under way: what ended since, in one line ("2 téléchargements terminés", "1 échec").

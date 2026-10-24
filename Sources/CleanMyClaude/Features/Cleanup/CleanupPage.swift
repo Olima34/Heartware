@@ -172,7 +172,7 @@ struct CleanupGroupRow: View {
                             Text(Fmt.bytes(model.size(of: group))).font(.serif(18)).foregroundStyle(Theme.text).monospacedDigit()
                             let sel = model.selectedSize(of: group)
                             Text(sel > 0 ? "\(Fmt.bytes(sel)) cochés" : "rien de coché")
-                                .font(.ui(11)).foregroundStyle(sel > 0 ? Theme.good : Theme.text3)
+                                .font(.ui(11)).foregroundStyle(sel > 0 ? Theme.text2 : Theme.text3)
                         }
                         Image(systemName: "chevron.right")
                             .font(.ui(11, .semibold))

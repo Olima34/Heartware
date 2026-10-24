@@ -61,6 +61,35 @@ enum Theme {
     /// The mascot's fur, face, horns and cloth (see `MascotFigure`).
     static var mascot: MascotColors { current.mascot }
 
+    // Matter and light (the design system: Arc × macOS 27), drawn from the colors above
+
+    /// The window itself, under the glass of the sidebar and around the stage.
+    static var window: Color { current.window }
+    /// The tint laid on the sidebar's glass.
+    static var glass: Color { current.glass }
+    /// Neutral fills of the controls, tracks and hovers, from the faintest.
+    static var fill1: Color { current.fill1 }
+    static var fill2: Color { current.fill2 }
+    static var fill3: Color { current.fill3 }
+    /// The 1-point reflection along the top edge of every raised surface: the light comes from above.
+    static var rim: Color { current.rim }
+    /// The top of a card: a touch lighter than its bottom in the dark.
+    static var cardTop: Color { current.cardTop }
+    /// Popovers, menus, the launcher: a surface floating above the others.
+    static var floating: Color { current.floating }
+    /// The veil and the reflection of the glass bubble that marks a selection.
+    static var bubble: Color { current.bubble }
+    static var bubbleRim: Color { current.bubbleRim }
+    /// The accent, faint (a focus halo, a selected row) and as an outline.
+    static var accentSoft: Color { current.accentSoft }
+    static var accentRim: Color { current.accentRim }
+    /// The neutral of the charts: the data, while the accent marks the insight.
+    static var chartNeutral: Color { current.chartNeutral }
+    /// The two shadows of a card (contact, then depth), and the deep one of the stage and the floating surfaces.
+    static var shadowNear: Color { current.shadowNear }
+    static var shadowFar: Color { current.shadowFar }
+    static var shadowDeep: Color { current.shadowDeep }
+
     // Status
     static var good: Color { current.good }
     static var warn: Color { current.warn }
@@ -133,6 +162,8 @@ final class ThemeResolved: @unchecked Sendable {
     let text, text2, text3: Color
     let accent, onAccent, brand, onBrand, matrix: Color
     let good, warn, bad, onBad: Color
+    let window, glass, fill1, fill2, fill3, rim, cardTop, floating, bubble, bubbleRim: Color
+    let accentSoft, accentRim, chartNeutral, shadowNear, shadowFar, shadowDeep: Color
     let palette: [Color]
     let mascot: MascotColors
     let radiusScale: CGFloat
@@ -159,6 +190,37 @@ final class ThemeResolved: @unchecked Sendable {
         onBrand = make(spec.light[.brand].readableInk, spec.dark[.brand].readableInk)
         good = c(.good); warn = c(.warn); bad = c(.bad)
         onBad = make(spec.light[.bad].readableInk, spec.dark[.bad].readableInk)
+        // The same color at another opacity in light and dark.
+        func veil(_ l: ThemeColor, _ la: CGFloat, _ d: ThemeColor, _ da: CGFloat) -> Color {
+            switch spec.appearance {
+            case .light: return Color(hex: l.hex, alpha: la)
+            case .dark: return Color(hex: d.hex, alpha: da)
+            case .system:
+                return Color(nsColor: NSColor(name: nil) { appearance in
+                    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: d.hex, alpha: da) : NSColor(hex: l.hex, alpha: la)
+                })
+            }
+        }
+        let (l, d) = (spec.light, spec.dark)
+        let bright = ThemeColor.white, night = ThemeColor(0x000000)
+        window = make(l[.bg].mixed(with: l[.text], 0.06), d[.bg].mixed(with: night, 0.4))
+        glass = veil(l[.sidebar], 0.62, d[.sidebar], 0.55)
+        fill1 = veil(l[.text], 0.04, d[.text], 0.05)
+        fill2 = veil(l[.text], 0.06, d[.text], 0.08)
+        fill3 = veil(l[.text], 0.08, d[.text], 0.11)
+        rim = veil(bright, 0.9, bright, 0.1)
+        cardTop = make(l[.card], d[.card].mixed(with: bright, 0.02))
+        floating = veil(l[.cardRaised], 0.8, d[.cardRaised], 0.78)
+        bubble = veil(bright, 0.55, d[.text], 0.08)
+        bubbleRim = veil(bright, 0.9, bright, 0.18)
+        accentSoft = veil(l[.accent], 0.14, d[.accent], 0.14)
+        accentRim = veil(l[.accent], 0.55, d[.accent], 0.55)
+        chartNeutral = veil(l[.text], 0.22, d[.text], 0.26)
+        // Flat themes draw no shadow at all, raised ones a deeper one.
+        let depth: CGFloat = spec.elevation == .flat ? 0 : (spec.elevation == .raised ? 1.6 : 1)
+        shadowNear = veil(night, 0.04 * depth, night, 0.25 * depth)
+        shadowFar = veil(night, 0.07 * depth, night, 0.32 * depth)
+        shadowDeep = veil(night, 0.14 * depth, night, 0.45 * depth)
         palette = (0..<ThemePalette.chartCount).map { make(spec.light.chart[$0], spec.dark.chart[$0]) }
         // The mascot keeps the bright warm color of the dark appearance everywhere, turned into a chamois' tawny fur;
         // on a light background only, a contour keeps its cream face readable.
@@ -228,11 +290,18 @@ final class ThemeResolved: @unchecked Sendable {
 // MARK: - Typography
 
 extension Font {
-    /// Titles and big numbers: serif in Atelier, the theme's title font otherwise.
+    /// Titles and big numbers: serif in Atelier, the theme's title font otherwise, always with tabular figures.
     /// A title left at the regular weight takes the theme's title weight.
     static func serif(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         let t = Theme.current
-        return .system(size: size * t.textScale, weight: weight == .regular ? t.titleWeight : weight, design: t.titleDesign)
+        return Font.system(size: size * t.textScale, weight: weight == .regular ? t.titleWeight : weight, design: t.titleDesign)
+            .monospacedDigit()
+    }
+    /// A figure (a KPI, a big number): the title font one step lighter than the titles when they are bold.
+    static func figure(_ size: CGFloat) -> Font {
+        let t = Theme.current
+        let weight: Font.Weight = t.titleWeight == .bold ? .semibold : t.titleWeight
+        return Font.system(size: size * t.textScale, weight: weight, design: t.titleDesign).monospacedDigit()
     }
     static func ui(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         let t = Theme.current

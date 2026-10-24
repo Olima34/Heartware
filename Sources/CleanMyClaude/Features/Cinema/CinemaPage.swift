@@ -92,25 +92,33 @@ struct CinemaKindPicker: View {
     @Binding var kind: CinemaKind?
 
     var body: some View {
-        HStack(spacing: 2) {
-            chip("Tout", nil)
-            chip("Films", .movie)
-            chip("Séries", .tv)
+        GlassGroup(selection: Self.key(kind), axis: .horizontal, radius: 6,
+                   pick: { k in kind = [nil, CinemaKind.movie, .tv].first { Self.key($0) == k } ?? nil }) {
+            HStack(spacing: 0) {
+                chip("Tout", nil)
+                chip("Films", .movie)
+                chip("Séries", .tv)
+            }
         }
         .padding(2)
-        .background(PillShape().fill(Theme.track))
+        .background(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).fill(Theme.fill1))
+        .overlay(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).strokeBorder(Theme.border, lineWidth: Theme.line))
     }
 
     private func chip(_ label: String, _ value: CinemaKind?) -> some View {
         let on = kind == value
         return Button { kind = value } label: {
-            Text(label).font(.ui(11.5, .medium))
-                .foregroundStyle(on ? Theme.onAccent : Theme.text2)
-                .padding(.horizontal, 10).padding(.vertical, 4)
-                .background(PillShape().fill(on ? Theme.accent : Color.clear))
-                .contentShape(PillShape())
+            Text(label).font(.ui(12, .medium))
+                .foregroundStyle(on ? Theme.text : Theme.text2)
+                .padding(.horizontal, 10).frame(height: 24)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .glassItem(Self.key(value))
+    }
+
+    private static func key(_ k: CinemaKind?) -> String {
+        k.map { "\($0)" } ?? "tout"
     }
 }
 
@@ -156,7 +164,7 @@ struct CinemaResultsCard: View {
                 Spacer(minLength: 0)
             }
             .padding(6)
-            .background(RoundedRectangle(cornerRadius: Theme.r(8)).fill(selected ? Theme.accent.opacity(0.13) : Color.clear))
+            .background { if selected { StillBubble(radius: 8) } }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -215,13 +223,12 @@ struct CinemaPlatformsPanel: View {
                     Button { model.toggleMine(p.key) } label: {
                         HStack(spacing: 5) {
                             Image(systemName: on ? "checkmark.circle.fill" : "circle")
-                                .font(.ui(11)).foregroundStyle(on ? Theme.good : Theme.text3)
-                            Text(p.name).font(.ui(12, .medium)).foregroundStyle(Theme.text)
+                                .font(.ui(11)).foregroundStyle(on ? Theme.accent : Theme.text3)
+                            Text(p.name).font(.ui(12, .medium)).foregroundStyle(on ? Theme.text : Theme.text2)
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(PillShape().fill(on ? Theme.good.opacity(0.12) : Theme.card))
-                        .overlay(PillShape().strokeBorder(on ? Theme.good.opacity(0.45) : Theme.border, lineWidth: Theme.line))
-                        .contentShape(PillShape())
+                        .padding(.horizontal, 10).frame(height: 26)
+                        .chipGround(on, still: true)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

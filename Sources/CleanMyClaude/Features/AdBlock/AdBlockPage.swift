@@ -295,11 +295,14 @@ private struct AdBlockLevelChoice: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Text("Niveau").font(.ui(12, .medium)).foregroundStyle(Theme.text3)
-                HStack(spacing: 2) {
-                    ForEach(AdBlockLevel.allCases) { level in chip(level, m) }
+                GlassGroup(selection: m.settings.level, axis: .horizontal, radius: 6, pick: { m.settings.level = $0 }) {
+                    HStack(spacing: 0) {
+                        ForEach(AdBlockLevel.allCases) { level in chip(level, m).glassItem(level) }
+                    }
                 }
                 .padding(2)
-                .background(PillShape().fill(Theme.track))
+                .background(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).fill(Theme.fill1))
+                .overlay(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).strokeBorder(Theme.border, lineWidth: Theme.line))
                 if m.needsReinstall, let installed = m.settings.installedLevel, installed != m.settings.level {
                     Text("Le profil installé est en \(installed.title)").font(.ui(11.5, .medium)).foregroundStyle(Theme.warn)
                 }
@@ -318,10 +321,9 @@ private struct AdBlockLevelChoice: View {
                 Text(level.title).font(.ui(12, .medium))
                 if level == .maximal { Text("recommandé").font(.ui(10.5)).opacity(0.75) }
             }
-            .foregroundStyle(on ? Theme.onAccent : Theme.text2)
-            .padding(.horizontal, 11).padding(.vertical, 4)
-            .background(PillShape().fill(on ? Theme.accent : Color.clear))
-            .contentShape(PillShape())
+            .foregroundStyle(on ? Theme.text : Theme.text2)
+            .padding(.horizontal, 10).frame(height: 24)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help("\(level.list)\(active ? " · actif sur ce Mac" : "")")

@@ -199,9 +199,10 @@ struct WheelRingEditor: View {
                 }
             }
             .frame(height: 24)
+            GlassGroup(selection: picked, axis: .horizontal, radius: 7) {
             FlowLayout(spacing: 5, lineSpacing: 5) {
                 ForEach(Array(chosen.enumerated()), id: \.element) { i, a in
-                    pill(a, overflow: i >= limit)
+                    pill(a, overflow: i >= limit).glassItem(a)
                 }
                 if !aside.isEmpty {
                     BorderlessMenu(indicator: false) {
@@ -220,6 +221,7 @@ struct WheelRingEditor: View {
                     .help("Mettre une autre action sur la roue")
                 }
             }
+            }
         }
     }
 
@@ -228,13 +230,13 @@ struct WheelRingEditor: View {
         return Button { picked = on ? nil : a } label: {
             HStack(spacing: 4) {
                 if Theme.icons != .hidden { Image(systemName: a.symbol).font(.ui(10, .semibold)) }
-                Text(a.title).font(.ui(11.5, on ? .semibold : .medium)).lineLimit(1)
+                Text(a.title).font(.ui(11.5, .medium)).lineLimit(1)
             }
-            .foregroundStyle(on ? Theme.onAccent : Theme.text)
+            .foregroundStyle(on ? Theme.text : Theme.text2)
             .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(PillShape().fill(on ? Theme.accent : Theme.track.opacity(0.7)))
-            .contentShape(PillShape())
+            .frame(height: 26)
+            .chipGround(on)
+            .contentShape(Rectangle())
             .opacity(overflow ? 0.45 : 1)
         }
         .buttonStyle(.plain)

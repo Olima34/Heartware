@@ -340,6 +340,13 @@ struct CleanMyClaudeApp: App {
                 }
             }
             CommandMenu("Aller à") {
+                Button("Page précédente") { model.goBack() }
+                    .keyboardShortcut("[", modifiers: .command)
+                    .disabled(model.backPages.isEmpty)
+                Button("Page suivante") { model.goForward() }
+                    .keyboardShortcut("]", modifiers: .command)
+                    .disabled(model.forwardPages.isEmpty)
+                Divider()
                 // The sidebar's order, « Autres outils » last: ⌘1…⌘9 are its first nine pages.
                 ForEach(Array(model.profile.menuOrder.enumerated()), id: \.element) { i, p in
                     // Only the first nine pages get ⌘1…⌘9 (Character("10") would crash).

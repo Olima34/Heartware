@@ -110,15 +110,16 @@ struct MenuBarPage: View {
                 ForEach(items) { item in
                     let shown = !hidden.contains(item.id)
                     Button { hiddenRaw = MenuPanelItems.toggled(item.id, in: hiddenRaw) } label: {
+                        // Like a check box: the accent in the tick of what is shown, the chip itself neutral.
                         HStack(spacing: 5) {
                             Image(systemName: shown ? "checkmark" : "plus").font(.ui(9.5, .bold))
+                                .foregroundStyle(shown ? Theme.accent : Theme.text3)
                             Text(item.title).font(.ui(11.5, .medium))
                         }
-                        .foregroundStyle(shown ? Theme.onAccent : Theme.text2)
-                        .padding(.horizontal, 9).padding(.vertical, 5)
-                        .background(PillShape().fill(shown ? Theme.accent : Theme.card))
-                        .overlay(PillShape().strokeBorder(shown ? Color.clear : Theme.border, lineWidth: Theme.line))
-                        .contentShape(PillShape())
+                        .foregroundStyle(shown ? Theme.text : Theme.text2)
+                        .padding(.horizontal, 9).frame(height: 26)
+                        .chipGround(shown, still: true)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help(shown ? "Dans le panneau : clique pour l'enlever" : "Pas dans le panneau : clique pour l'ajouter")

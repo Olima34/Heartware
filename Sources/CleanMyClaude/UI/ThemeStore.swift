@@ -8,7 +8,7 @@ final class ThemeStore: @unchecked Sendable {
     static let shared = ThemeStore()
 
     private(set) var resolved: ThemeResolved
-    /// The themes the user made, after the five built-in ones.
+    /// The themes the user made, after the six built-in ones.
     private(set) var customs: [ThemeSpec]
 
     var active: ThemeSpec { resolved.spec }
@@ -16,6 +16,7 @@ final class ThemeStore: @unchecked Sendable {
 
     @ObservationIgnored private static let activeKey = "app.theme"
     @ObservationIgnored private static let customsKey = "app.customThemes"
+    @ObservationIgnored private static let redesignKey = "app.theme.graphiteRedesign"
     @ObservationIgnored private let persists: Bool
 
     init() {
@@ -27,8 +28,16 @@ final class ThemeStore: @unchecked Sendable {
             saved = list.filter { !$0.isBuiltIn }
         }
         customs = saved
-        let id = persists ? defaults.string(forKey: Self.activeKey) : nil
-        resolved = ThemeResolved((ThemeSpec.builtIns + saved).first { $0.id == id } ?? .atelier)
+        var id = persists ? defaults.string(forKey: Self.activeKey) : nil
+        // Before the redesign, « graphite » was the sober theme, now « Graphite pur »: whoever chose it keeps it.
+        if persists, !defaults.bool(forKey: Self.redesignKey) {
+            defaults.set(true, forKey: Self.redesignKey)
+            if id == "graphite" {
+                id = ThemeSpec.graphitePur.id
+                defaults.set(id, forKey: Self.activeKey)
+            }
+        }
+        resolved = ThemeResolved((ThemeSpec.builtIns + saved).first { $0.id == id } ?? .base)
     }
 
     // MARK: Choosing
@@ -64,7 +73,7 @@ final class ThemeStore: @unchecked Sendable {
     func delete(_ id: String) {
         guard let i = customs.firstIndex(where: { $0.id == id }) else { return }
         customs.remove(at: i)
-        if active.id == id { apply(.atelier) } else { save() }
+        if active.id == id { apply(.base) } else { save() }
     }
 
     // MARK: Sharing
@@ -76,7 +85,7 @@ final class ThemeStore: @unchecked Sendable {
         return (try? encoder.encode(spec)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
     }
 
-    /// Adds a theme pasted as JSON (missing fields come from Atelier) and switches to it.
+    /// Adds a theme pasted as JSON (missing fields come from Graphite) and switches to it.
     func importJSON(_ text: String) -> Bool {
         guard let data = text.data(using: .utf8),
               var spec = try? JSONDecoder().decode(ThemeSpec.self, from: data) else { return false }

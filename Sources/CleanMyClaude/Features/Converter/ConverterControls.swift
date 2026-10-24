@@ -16,11 +16,11 @@ struct ConverterChip: View {
                 if let symbol, Theme.icons != .hidden { Image(systemName: symbol).font(.ui(10, .semibold)) }
                 Text(title).font(.ui(11.5, selected ? .semibold : .medium)).lineLimit(1)
             }
-            .foregroundStyle(selected ? Theme.ink(on: tint) : Theme.text2)
+            .foregroundStyle(selected ? Theme.text : Theme.text2)
             .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(PillShape().fill(selected ? tint : Theme.track.opacity(0.7)))
-            .contentShape(PillShape())
+            .frame(height: 26)
+            .chipGround(selected, still: true)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -34,11 +34,7 @@ struct ConverterChips<T: Hashable>: View {
     var label: (T) -> String
 
     var body: some View {
-        FlowLayout(spacing: 5, lineSpacing: 5) {
-            ForEach(options, id: \.self) { o in
-                ConverterChip(title: label(o), symbol: symbol?(o), selected: o == selection) { selection = o }
-            }
-        }
+        ChipPicker(options: options, selection: $selection, label: label, symbol: symbol, wraps: true)
     }
 }
 

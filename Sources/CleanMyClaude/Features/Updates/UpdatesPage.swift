@@ -421,10 +421,10 @@ private struct UpdatesAppRow: View {
                     HStack(spacing: 6) {
                         if let store = r.storeURL {
                             Button("Mettre à jour dans l'App Store") { m.openLink(store) }
-                                .buttonStyle(SoftButtonStyle(prominent: true, small: true))
+                                .buttonStyle(SoftButtonStyle(small: true))
                         } else {
                             Button("Ouvrir l'app") { m.open(a) }
-                                .buttonStyle(SoftButtonStyle(prominent: true, small: true))
+                                .buttonStyle(SoftButtonStyle(small: true))
                                 .help("Son propre système de mise à jour s'en charge (menu de l'app, « Rechercher les mises à jour »).")
                             if let notes = r.notesURL {
                                 Button("Notes de version") { m.openLink(notes) }

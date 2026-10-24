@@ -220,25 +220,7 @@ struct WheelChips<T: Hashable>: View {
     var symbol: ((T) -> String?)? = nil
 
     var body: some View {
-        HStack(spacing: 3) {
-            ForEach(options, id: \.self) { o in
-                let on = o == selection
-                Button {
-                    withAnimation(.easeOut(duration: 0.15)) { selection = o }
-                } label: {
-                    HStack(spacing: 4) {
-                        if let s = symbol?(o), Theme.icons != .hidden { Image(systemName: s).font(.ui(10, .semibold)) }
-                        Text(label(o)).font(.ui(11, on ? .semibold : .medium))
-                    }
-                    .foregroundStyle(on ? Theme.onAccent : Theme.text2)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4.5)
-                    .background(PillShape().fill(on ? Theme.accent : Theme.track.opacity(0.7)))
-                    .contentShape(PillShape())
-                }
-                .buttonStyle(.plain)
-            }
-        }
+        ChipPicker(options: options, selection: $selection, label: label, symbol: symbol, spacing: 3)
     }
 }
 

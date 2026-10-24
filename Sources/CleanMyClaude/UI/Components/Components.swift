@@ -6,17 +6,16 @@ import UniformTypeIdentifiers
 
 struct Card<Content: View>: View {
     var padding: CGFloat = 18
+    /// The one card of a screen that deserves the eye (at most one): lit by the accent.
+    var featured = false
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) { content }
-            .padding(padding)
+            .padding(.horizontal, padding)
+            .padding(.vertical, padding > 8 ? padding - 2 : padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.r(14), style: .continuous).fill(Theme.card)
-                    .shadow(color: .black.opacity(Theme.current.spec.elevation == .raised ? 0.07 : 0), radius: 10, y: 3)
-            )
-            .overlay(RoundedRectangle(cornerRadius: Theme.r(14), style: .continuous).strokeBorder(Theme.border, lineWidth: Theme.line))
+            .raisedSurface(radius: 12, featured: featured)
     }
 }
 
@@ -39,9 +38,9 @@ struct PillShape: InsettableShape {
 }
 
 extension View {
-    /// A drop shadow, left out by the flat themes.
+    /// A drop shadow, left out by the flat themes. Always neutral: a colored glow under a surface is not light.
     func themedShadow(color: Color = .black.opacity(0.25), radius: CGFloat, y: CGFloat = 0) -> some View {
-        shadow(color: Theme.current.spec.elevation == .flat ? .clear : color, radius: radius, y: y)
+        shadow(color: Theme.current.spec.elevation == .flat ? .clear : Theme.shadowFar, radius: radius, y: y)
     }
 }
 
@@ -51,11 +50,13 @@ struct Panel<Content: View, Trailing: View>: View {
     var subtitle: String? = nil
     var symbol: String? = nil
     var tint: Color = Theme.accent
+    /// The one card of the screen that deserves the eye (see `Card.featured`).
+    var featured = false
     @ViewBuilder var trailing: Trailing
     @ViewBuilder var content: Content
 
     var body: some View {
-        Card {
+        Card(featured: featured) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     if let symbol, Theme.icons != .hidden {
@@ -63,13 +64,14 @@ struct Panel<Content: View, Trailing: View>: View {
                             .font(.ui(12, .medium))
                             .foregroundStyle(Theme.icons == .tinted ? tint : Theme.text3)
                     }
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(title)
-                            .font(.ui(13.5, .semibold))
+                            .font(.ui(13, .semibold))
+                            .tracking(-0.06)
                             .foregroundStyle(Theme.text)
                         if let subtitle {
                             Text(subtitle)
-                                .font(.ui(11.5))
+                                .font(.ui(12))
                                 .foregroundStyle(Theme.text3)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -84,12 +86,13 @@ struct Panel<Content: View, Trailing: View>: View {
 }
 
 extension Panel where Trailing == EmptyView {
-    init(title: String, subtitle: String? = nil, symbol: String? = nil, tint: Color = Theme.accent,
+    init(title: String, subtitle: String? = nil, symbol: String? = nil, tint: Color = Theme.accent, featured: Bool = false,
          @ViewBuilder content: () -> Content) {
         self.title = title
         self.subtitle = subtitle
         self.symbol = symbol
         self.tint = tint
+        self.featured = featured
         self.trailing = EmptyView()
         self.content = content()
     }
@@ -119,23 +122,28 @@ struct StatTile: View {
 
     var body: some View {
         Card(padding: 16) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 7) {
-                    IconBadge(symbol: symbol, tint: tint)
+                    if Theme.icons == .tinted {
+                        IconBadge(symbol: symbol, tint: tint)
+                    } else if Theme.icons == .mono {
+                        Image(systemName: symbol).font(.ui(12)).foregroundStyle(Theme.text3)
+                    }
                     Text(label)
                         .font(.ui(12))
                         .foregroundStyle(Theme.text2)
                         .lineLimit(1)
                 }
                 Text(value)
-                    .font(.serif(28))
+                    .font(.figure(26))
+                    .tracking(-0.5)
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .contentTransition(.numericText())
                 if let detail {
                     Text(detail)
-                        .font(.ui(11))
+                        .font(.ui(12))
                         .foregroundStyle(Theme.text3)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -159,10 +167,12 @@ struct IconBadge: View {
                 .frame(width: size, height: size)
                 .background(PillShape().fill(tint.opacity(0.14)))
         case .mono:
+            // A neutral vignette: never a background tinted by category.
             Image(systemName: symbol)
                 .font(.ui(size * 0.5, .medium))
                 .foregroundStyle(Theme.text2)
                 .frame(width: size, height: size)
+                .background(RoundedRectangle(cornerRadius: Theme.r(min(8, size * 0.3)), style: .continuous).fill(Theme.fill2))
         case .hidden:
             EmptyView()
         }
@@ -184,39 +194,33 @@ struct PageHero<Trailing: View>: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 18) {
-                switch Theme.icons {
-                case .tinted:
+                // The page's icon is already lit in the sidebar: only the tinted themes repeat it here.
+                if Theme.icons == .tinted {
                     Image(systemName: symbol)
-                        .font(.ui(24, .medium))
+                        .font(.ui(22, .medium))
                         .foregroundStyle(tint)
-                        .frame(width: 58, height: 58)
-                        .background(RoundedRectangle(cornerRadius: Theme.r(16), style: .continuous).fill(tint.opacity(0.14)))
-                        .overlay(RoundedRectangle(cornerRadius: Theme.r(16), style: .continuous).strokeBorder(tint.opacity(0.22)))
-                case .mono:
-                    Image(systemName: symbol)
-                        .font(.ui(22, .regular))
-                        .foregroundStyle(Theme.text)
-                        .frame(width: 58, height: 58)
-                        .overlay(RoundedRectangle(cornerRadius: Theme.r(16), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: max(1, Theme.line)))
-                case .hidden:
-                    EmptyView()
+                        .frame(width: 52, height: 52)
+                        .background(RoundedRectangle(cornerRadius: Theme.r(14), style: .continuous).fill(tint.opacity(0.14)))
+                        .overlay(RoundedRectangle(cornerRadius: Theme.r(14), style: .continuous).strokeBorder(tint.opacity(0.22)))
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text(title)
-                            .font(.serif(30))
+                            .font(.serif(28))
+                            .tracking(-0.6)
                             .foregroundStyle(Theme.text)
-                        if let tip { HelpTipButton(tip: tip, size: 15) }
+                        if let tip { HelpTipButton(tip: tip, size: 14) }
                     }
                     Text(subtitle)
                         .font(.ui(13))
                         .foregroundStyle(Theme.text2)
+                        .frame(maxWidth: 720, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 12)
                 trailing
             }
-            .padding(.top, 14)
+            .padding(.top, 2)
             .padding(.bottom, 6)
             // The dust spills under what follows instead of pushing it down.
             .background(alignment: .topLeading) {
@@ -245,8 +249,8 @@ struct SectionLabel: View {
     var text: String
     var body: some View {
         Text(text.uppercased())
-            .font(.ui(10.5, .semibold))
-            .tracking(0.8)
+            .font(.ui(11, .semibold))
+            .tracking(0.66)
             .foregroundStyle(Theme.text3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 6)
@@ -262,14 +266,16 @@ struct Tag: View {
     var filled = false
 
     var body: some View {
+        // Never a solid colored background: a neutral tag, its color in the icon and the text of a real state.
         HStack(spacing: 4) {
             if let symbol, Theme.icons != .hidden { Image(systemName: symbol).font(.ui(9.5, .semibold)) }
             Text(text).font(.ui(11, .medium)).lineLimit(1)
         }
         .foregroundStyle(tint)
         .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(PillShape().fill(filled && Theme.icons == .tinted ? tint.opacity(0.14) : Theme.track))
+        .frame(minHeight: 20)
+        .background(RoundedRectangle(cornerRadius: Theme.r(6), style: .continuous)
+            .fill(filled && Theme.icons == .tinted ? tint.opacity(0.14) : Theme.fill2))
     }
 }
 
@@ -281,7 +287,8 @@ enum Status: Int, Comparable {
     var color: Color {
         switch self {
         case .ok: return Theme.good
-        case .info: return Theme.accent
+        // Information is not a state: neutral, the accent stays for what is chosen or under way.
+        case .info: return Theme.text2
         case .warn: return Theme.warn
         case .bad: return Theme.bad
         case .unknown: return Theme.text3
@@ -455,10 +462,14 @@ struct HoverRow<Content: View>: View {
     @State private var hovering = false
 
     var body: some View {
+        // A selected row: the faint accent and a thin accent edge on its left.
         content
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .background(RoundedRectangle(cornerRadius: Theme.r(8)).fill(selected ? Theme.selected : (hovering ? Theme.hover.opacity(0.6) : .clear)))
+            .background(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).fill(selected ? Theme.accentSoft : (hovering ? Theme.fill1 : .clear)))
+            .overlay(alignment: .leading) {
+                if selected { Rectangle().fill(Theme.accent).frame(width: 2).padding(.vertical, 6) }
+            }
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
     }
@@ -494,7 +505,7 @@ struct Callout: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous).fill(tinted ? tint.opacity(0.07) : Theme.card))
+        .background(RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous).fill(tinted ? tint.opacity(0.07) : Theme.fill1))
         .overlay(RoundedRectangle(cornerRadius: Theme.r(12), style: .continuous)
             .strokeBorder(tinted ? tint.opacity(0.18) : Theme.border, lineWidth: tinted ? 1 : max(1, Theme.line)))
     }
@@ -509,34 +520,38 @@ struct PillPicker<T: Hashable & Identifiable>: View {
     var badge: ((T) -> String?)? = nil
 
     var body: some View {
-        HStack(spacing: 2) {
-            ForEach(options) { o in
-                let on = o == selection
-                Button {
-                    withAnimation(.easeOut(duration: 0.18)) { selection = o }
-                } label: {
-                    HStack(spacing: 5) {
-                        Text(label(o))
-                            .font(.ui(12, on ? .semibold : .regular))
-                        if let b = badge?(o) {
-                            Text(b)
-                                .font(.ui(10, .semibold))
-                                .foregroundStyle(on ? Theme.accent : Theme.text3)
-                                .monospacedDigit()
+        // The segment chosen carries the glass bubble; no accent on a segmented control.
+        GlassGroup(selection: selection, axis: .horizontal, radius: 6, pick: { selection = $0 }) {
+            HStack(spacing: 0) {
+                ForEach(options) { o in
+                    let on = o == selection
+                    Button {
+                        selection = o
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(label(o))
+                                .font(.ui(12, .medium))
+                            if let b = badge?(o) {
+                                Text(b)
+                                    .font(.ui(10.5, .semibold))
+                                    .foregroundStyle(Theme.text3)
+                                    .monospacedDigit()
+                            }
                         }
+                        .foregroundStyle(on ? Theme.text : Theme.text2)
+                        .animation(.easeOut(duration: 0.2), value: on)
+                        .padding(.horizontal, 10)
+                        .frame(height: 24)
+                        .contentShape(Rectangle())
                     }
-                    .foregroundStyle(on ? Theme.text : Theme.text2)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 6)
-                    .background(RoundedRectangle(cornerRadius: Theme.r(7)).fill(on ? Theme.selected : .clear))
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .glassItem(o)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .padding(3)
-        .background(RoundedRectangle(cornerRadius: Theme.r(9)).fill(Theme.card))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(9)).strokeBorder(Theme.border, lineWidth: Theme.line))
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).fill(Theme.fill1))
+        .overlay(RoundedRectangle(cornerRadius: Theme.r(8), style: .continuous).strokeBorder(Theme.border, lineWidth: Theme.line))
     }
 }
 
@@ -632,10 +647,10 @@ struct CheckBox: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                RoundedRectangle(cornerRadius: Theme.r(4.5))
-                    .fill(state == .off ? Color.clear : Theme.accent)
-                RoundedRectangle(cornerRadius: Theme.r(4.5))
-                    .strokeBorder(state == .off ? Theme.borderStrong : Theme.accent, lineWidth: 1.2)
+                RoundedRectangle(cornerRadius: Theme.r(4.5), style: .continuous)
+                    .fill(state == .off ? Theme.fill3 : Theme.accent)
+                RoundedRectangle(cornerRadius: Theme.r(4.5), style: .continuous)
+                    .strokeBorder(state == .off ? Theme.borderStrong : Theme.accent, lineWidth: 1)
                 if state == .on {
                     Image(systemName: "checkmark").font(.system(size: 9, weight: .heavy)).foregroundStyle(Theme.onAccent)
                 } else if state == .mixed {
@@ -659,16 +674,28 @@ struct SoftButtonStyle: ButtonStyle {
     var small = false
 
     func makeBody(configuration: Configuration) -> some View {
-        let fill: Color = destructive ? Theme.bad : (prominent ? Theme.accent : Theme.card)
         let filled = prominent || destructive
+        let shape = RoundedRectangle(cornerRadius: Theme.r(small ? 7 : 8), style: .continuous)
         configuration.label
-            .font(.ui(small ? 11.5 : 12, .medium))
+            .font(.ui(small ? 12 : 13, .medium))
             .foregroundStyle(destructive ? Theme.onBad : (prominent ? Theme.onAccent : Theme.text))
-            .padding(.horizontal, small ? 9 : 12)
-            .padding(.vertical, small ? 5 : 7)
-            .background(RoundedRectangle(cornerRadius: Theme.r(8)).fill(fill))
-            .overlay(RoundedRectangle(cornerRadius: Theme.r(8)).strokeBorder(filled ? Color.clear : Theme.border, lineWidth: Theme.line))
-            .opacity(configuration.isPressed ? 0.75 : 1)
+            .padding(.horizontal, small ? 10 : 14)
+            .frame(minHeight: small ? 24 : 30)
+            .background {
+                if filled {
+                    // A solid button, lit from above.
+                    shape.fill(destructive ? Theme.bad : Theme.accent)
+                        .overlay { SpecularRim(shape: shape, color: .white.opacity(0.22), fade: 8) }
+                        .shadow(color: Theme.shadowNear, radius: 1, y: 1)
+                } else {
+                    // A glass button: a neutral fill, a hairline and the reflection on top.
+                    shape.fill(Theme.fill2)
+                        .overlay { shape.strokeBorder(Theme.border, lineWidth: Theme.line) }
+                        .overlay { SpecularRim(shape: shape, fade: 8) }
+                }
+            }
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
             .contentShape(Rectangle())
     }
 }
@@ -695,11 +722,15 @@ struct ScanButton: View {
                 Text(running ? runningTitle : title).font(.ui(13, .semibold))
             }
             .foregroundStyle(Theme.onAccent)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .background(PillShape().fill(Theme.accent))
-            .themedShadow(color: Theme.accent.opacity(0.35), radius: 10, y: 3)
-            .contentShape(PillShape())
+            .padding(.horizontal, 16)
+            .frame(minHeight: 32)
+            .background {
+                let shape = RoundedRectangle(cornerRadius: Theme.r(9), style: .continuous)
+                shape.fill(Theme.accent)
+                    .overlay { SpecularRim(shape: shape, color: .white.opacity(0.22), fade: 8) }
+                    .shadow(color: Theme.shadowNear, radius: 1, y: 1)
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .allowsHitTesting(!running)
@@ -883,7 +914,7 @@ struct DrawnSwitchStyle: ToggleStyle {
             configuration.label
             Spacer(minLength: 8)
             PillShape()
-                .fill(configuration.isOn ? Theme.accent : Theme.borderStrong)
+                .fill(configuration.isOn ? Theme.accent : Theme.fill3)
                 .frame(width: 30, height: 17)
                 .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                     PillShape().fill(configuration.isOn ? Theme.onAccent : .white).padding(2).frame(width: 17, height: 17)

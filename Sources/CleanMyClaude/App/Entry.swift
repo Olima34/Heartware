@@ -345,7 +345,8 @@ enum Diagnostics {
 /// `CleanMyClaude --snapshot <dir> [--page cleanup] [--light] [--theme graphite] [--scale 2] [--demo]` renders pages to PNG,
 /// with real scan data or, with `--demo`, the fictional Mac of `DemoData`.
 /// `--page appearance` renders the theme settings (`--tab edit` shows the editor, on a copy of the theme),
-/// `--page mascotte` every scene of the busy mascot, `--page reglages` the Réseau tab of the settings, and `--tab attente`
+/// `--page mascotte` every scene of the busy mascot, `--page reglages` the Réseau tab of the settings, `--page fenetre`
+/// the whole window (sidebar, stage and toolbar; `--tab cleanup` opens that page in it), and `--tab attente`
 /// a page while its work is in progress.
 @MainActor
 enum Snapshot {
@@ -380,7 +381,11 @@ enum Snapshot {
 
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         var shots: [(String, AnyView)] = []
-        let everything = only == nil && pageName != "appearance" && pageName != "mascotte" && pageName != "reglages"
+        let everything = only == nil && !["appearance", "mascotte", "reglages", "fenetre"].contains(pageName ?? "")
+        if pageName == "fenetre" {
+            model.page = Entry.value(after: "--tab").flatMap(Page.init(rawValue:)) ?? .dashboard
+            shots.append(("fenetre-panel", AnyView(WindowShell().frame(height: 900))))
+        }
         if pageName == "mascotte" {
             // Every scene of the busy mascot, frame by frame.
             shots.append(("mascotte-panel", AnyView(MascotGallery())))
@@ -500,7 +505,8 @@ enum Snapshot {
                                "adblock-player-panel": 960,
                                "appearance-panel": AppearanceSettings.width, "mascotte-panel": MascotGallery.width,
                                "selfupdate-panel": UpdatesSelfPanel.width, "refuge-ceremony-panel": RefugeCeremonyPanel.width, "selfupdate-window-panel": 1180, "onboarding-window-panel": 1180,
-                               "sidebar-panel": 248, "profile-panel": ProfilePanel.width, "statusitem-panel": 340][name]
+                               "sidebar-panel": WindowShell.sidebarWidth, "profile-panel": ProfilePanel.width, "statusitem-panel": 340,
+                               "fenetre-panel": 1380][name]
                        ?? widths[name] ?? (name.hasPrefix("onboarding-") ? OnboardingPanel.width : name.hasPrefix("reglages-") ? NetworkSettings.width : 1180))
                 .padding(name.hasSuffix("-panel") ? 0 : 32)
                 .background(Theme.bg)

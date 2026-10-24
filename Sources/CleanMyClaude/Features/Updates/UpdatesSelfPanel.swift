@@ -6,11 +6,10 @@ struct UpdatesSelfModal: View {
     var body: some View {
         ZStack {
             // The only fixed color: a veil that darkens whatever theme is behind it.
-            Color.black.opacity(0.35)
+            Color.black.opacity(0.25)
                 .contentShape(Rectangle())
                 .onTapGesture {}
             UpdatesSelfPanel()
-                .themedShadow(color: .black.opacity(0.35), radius: 30, y: 12)
                 .transition(.scale(scale: 0.97).combined(with: .opacity))
         }
         .ignoresSafeArea()
@@ -39,9 +38,7 @@ struct UpdatesSelfPanel: View {
             }
         }
         .frame(width: Self.width, height: Self.height)
-        .background(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous).fill(Theme.bg))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: Theme.line))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous))
+        .floatingSurface(radius: 18)
     }
 
     // MARK: Header
@@ -150,7 +147,7 @@ struct UpdatesSelfPanel: View {
         .padding(.horizontal, 22)
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.sidebar.opacity(0.6))
+        .background(Theme.fill1)
         .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
     }
 

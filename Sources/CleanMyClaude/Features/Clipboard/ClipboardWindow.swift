@@ -274,9 +274,7 @@ struct ClipboardWindowView: View {
             }
         }
         .frame(width: ClipboardWindow.width, height: ClipboardWindow.height)
-        .background(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous).fill(Theme.bg))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: Theme.line))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r(18), style: .continuous))
+        .floatingSurface(radius: 14, shadow: false, ownWindow: true)
         .onAppear { DispatchQueue.main.async { focused = true } }
         // Back from the settings or the activation: the search takes the keyboard again.
         .onChange(of: w.screen(m)) { _, screen in
@@ -414,7 +412,7 @@ struct ClipboardWindowView: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 8)
         .frame(height: 38)
-        .background(Theme.sidebar.opacity(0.6))
+        .background(Theme.fill1)
     }
 
     private func emptyText(_ m: ClipboardModel) -> String {
@@ -565,7 +563,7 @@ struct ClipboardWindowRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: Theme.r(9)).fill(selected ? Theme.accent.opacity(0.16) : .clear))
+        .background { if selected { StillBubble(radius: 8) } }
         .padding(.horizontal, 6)
         .contentShape(Rectangle())
     }

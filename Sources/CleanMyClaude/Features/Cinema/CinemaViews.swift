@@ -71,14 +71,13 @@ struct CinemaOfferChip: View {
                 CinemaLogo(offer: offer, size: 16)
                 Text(offer.displayName).font(.ui(11.5, .medium)).lineLimit(1)
                 if mine {
-                    Image(systemName: "checkmark.circle.fill").font(.ui(9.5)).foregroundStyle(Theme.good)
+                    Image(systemName: "checkmark.circle.fill").font(.ui(9.5)).foregroundStyle(Theme.accent)
                 }
             }
             .foregroundStyle(Theme.text)
-            .padding(.leading, 4).padding(.trailing, 8).padding(.vertical, 3)
-            .background(PillShape().fill(mine ? Theme.good.opacity(0.12) : Theme.card))
-            .overlay(PillShape().strokeBorder(mine ? Theme.good.opacity(0.45) : Theme.border, lineWidth: Theme.line))
-            .contentShape(PillShape())
+            .padding(.leading, 4).padding(.trailing, 8).frame(height: 24)
+            .chipGround(false)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(help)

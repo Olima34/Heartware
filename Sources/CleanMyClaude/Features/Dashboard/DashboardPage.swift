@@ -15,11 +15,12 @@ struct DashboardPage: View {
                 Panel(title: "Activité en direct", subtitle: "Deux dernières minutes", symbol: "waveform.path.ecg") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 14) {
+                            // The processor is the series that moves: the accent; the memory stays neutral.
                             LegendDot(color: Theme.accent, label: "Processeur", value: Fmt.pct(app.monitor.cpu))
-                            LegendDot(color: Theme.palette[4], label: "Mémoire", value: Fmt.pct(app.monitor.memFraction))
+                            LegendDot(color: Theme.chartNeutral, label: "Mémoire", value: Fmt.pct(app.monitor.memFraction))
                         }
                         ZStack {
-                            HistoryChart(values: app.monitor.memHistory.map { $0 * 100 }, tint: Theme.palette[4], unit: "%", maxY: 100)
+                            HistoryChart(values: app.monitor.memHistory.map { $0 * 100 }, tint: Theme.chartNeutral, unit: "%", maxY: 100)
                             HistoryChart(values: app.monitor.cpuHistory.map { $0 * 100 }, tint: Theme.accent, unit: "%", maxY: 100)
                         }
                         .frame(height: 150)
@@ -35,6 +36,7 @@ struct DashboardPage: View {
 
     // MARK: Hero
 
+    /// The one hero of the app: the greeting on a faint glow of the accent alone, melting into the stage.
     private var hero: some View {
         ZStack(alignment: .topLeading) {
             DustBackdrop(seed: 11, opacity: 0.45)
@@ -44,10 +46,11 @@ struct DashboardPage: View {
             HStack(alignment: .center, spacing: 24) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(Fmt.greeting(name: Fmt.firstName))
-                        .font(.serif(36))
+                        .font(.serif(34))
+                        .tracking(-0.85)
                         .foregroundStyle(Theme.text)
                     Text(heroSentence)
-                        .font(.ui(14))
+                        .font(.ui(13))
                         .foregroundStyle(Theme.text2)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 8) {
@@ -72,6 +75,15 @@ struct DashboardPage: View {
                 }
             }
             .padding(.top, 14)
+        }
+        // Behind the greeting, out of the layout: it spills to the edges of the stage and fades before the next row.
+        .background(alignment: .topLeading) {
+            RadialGradient(colors: [Theme.accentSoft, Theme.accentSoft.opacity(0)], center: .topLeading, startRadius: 0, endRadius: 620)
+                .mask(LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom))
+                .frame(height: 300)
+                .padding(.horizontal, -28)
+                .offset(y: -72)
+                .allowsHitTesting(false)
         }
     }
 
@@ -141,7 +153,8 @@ struct SmartScanPanel: View {
                              text: "En une minute, je fais le point sur les fichiers inutiles, les protections de sécurité, les logiciels malveillants, les apps oubliées et ce qui démarre en douce. Rien n'est supprimé sans ton accord : clique sur une carte pour voir le détail et décider.")
 
     var body: some View {
-        Card(padding: 20) {
+        // The featured card of the dashboard: the one place the accent lights a card.
+        Card(padding: 20, featured: true) {
             HStack(alignment: .center, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {

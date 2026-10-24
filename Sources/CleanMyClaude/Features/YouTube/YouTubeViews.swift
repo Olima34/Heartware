@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 enum YouTubeStyle {
-    /// The red-pink of the theme's chart colors: YouTube's own red, toned to the theme.
-    static var tint: Color { Theme.palette[5] }
+    /// The accent: a download under way, the choice made (one accent for the whole app).
+    static var tint: Color { Theme.accent }
 
     /// "4K", "1440p", "1080p".
     static func heightName(_ h: Int) -> String {
@@ -67,7 +67,12 @@ struct YouTubeChips<T: Hashable>: View {
     var select: (T) -> Void
 
     var body: some View {
-        HStack(spacing: 4) {
+        GlassGroup(selection: selection, axis: .horizontal, radius: 7, pick: select) {
+            HStack(spacing: 4) { chips }
+        }
+    }
+
+    private var chips: some View {
             ForEach(options, id: \.self) { o in
                 let on = o == selection
                 Button { select(o) } label: {
@@ -82,16 +87,14 @@ struct YouTubeChips<T: Hashable>: View {
                     .padding(.horizontal, 3)
                     .padding(.vertical, 4)
                     .frame(maxWidth: .infinity)
-                    .background(RoundedRectangle(cornerRadius: Theme.r(7)).fill(on ? Theme.selected : Theme.card))
-                    .overlay(RoundedRectangle(cornerRadius: Theme.r(7))
-                        .strokeBorder(on ? YouTubeStyle.tint.opacity(0.6) : Theme.border, lineWidth: max(1, Theme.line)))
+                    .chipGround(on)
                     .opacity(dimmed(o) && !on ? 0.45 : 1)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(help(o) ?? "")
+                .glassItem(o)
             }
-        }
     }
 }
 

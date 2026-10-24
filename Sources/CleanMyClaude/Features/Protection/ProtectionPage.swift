@@ -206,7 +206,7 @@ struct SecurityCheckRow: View {
                     HStack(spacing: 6) {
                         Text(check.title).font(.ui(12.5, .semibold)).foregroundStyle(Theme.text)
                         if check.weight == 3 { Tag(text: "Critique", tint: Theme.text3) }
-                        if check.level == .hardened { Tag(text: "Renforcé", symbol: "shield.lefthalf.filled", tint: Theme.accent) }
+                        if check.level == .hardened { Tag(text: "Renforcé", symbol: "shield.lefthalf.filled", tint: Theme.text2) }
                     }
                     Text(check.detail).font(.ui(11.5)).foregroundStyle(Theme.text2).fixedSize(horizontal: false, vertical: true)
                     if let advice = check.advice, issue {

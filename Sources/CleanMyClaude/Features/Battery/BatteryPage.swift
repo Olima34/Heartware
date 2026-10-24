@@ -166,6 +166,8 @@ private struct BatteryLimitPanel: View {
                     Text("Pas de limite de recharge sur ce Mac ou ce macOS : l'alerte de charge, à côté, te dit quand débrancher.")
                         .font(.ui(12)).foregroundStyle(Theme.text2).fixedSize(horizontal: false, vertical: true)
                 } else if let l = m.limit {
+                    // Setting the limit asks macOS: the bubble follows the click, it is not dragged.
+                    GlassGroup(selection: l.limit, axis: .horizontal, radius: 8) {
                     HStack(spacing: 8) {
                         ForEach(l.choices, id: \.self) { v in
                             BatteryChip(label: v >= 100 ? "100 %" : "\(v) %", on: l.limit == v, busy: m.applying == v) {
@@ -176,7 +178,9 @@ private struct BatteryLimitPanel: View {
                                 }
                             }
                             .help(v >= 100 ? "Recharger jusqu'à 100 %" : "Arrêter la recharge à \(v) %")
+                            .glassItem(v)
                         }
+                    }
                     }
                     if l.limit == nil {
                         Text("macOS n'a pas donné sa limite actuelle.").font(.ui(11.5)).foregroundStyle(Theme.text3)
@@ -209,14 +213,13 @@ private struct BatteryChip: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 5) {
-                if busy { BusyMascot(.charging, pixel: 1, ink: on ? Theme.onBrand : nil) }
-                Text(label).font(.ui(12.5, .semibold)).monospacedDigit()
+                if busy { BusyMascot(.charging, pixel: 1) }
+                Text(label).font(.ui(12.5, .medium)).monospacedDigit()
             }
-            .foregroundStyle(on ? Theme.onBrand : Theme.text)
+            .foregroundStyle(on ? Theme.text : Theme.text2)
             .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(RoundedRectangle(cornerRadius: Theme.r(9)).fill(on ? Theme.brand : Theme.bg))
-            .overlay(RoundedRectangle(cornerRadius: Theme.r(9)).strokeBorder(on ? Color.clear : Theme.border, lineWidth: Theme.line))
+            .frame(height: 28)
+            .chipGround(on, radius: 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -259,9 +262,12 @@ private struct BatteryAlertsPanel: View {
             }
             .switchToggles()
             .controlSize(.small)
-            HStack(spacing: 6) {
-                ForEach(choices, id: \.self) { v in
-                    BatteryChip(label: "\(v) %", on: isOn.wrappedValue && value == v) { choose(v) }
+            GlassGroup(selection: isOn.wrappedValue ? value : nil, axis: .horizontal, radius: 8, pick: { choose($0) }) {
+                HStack(spacing: 6) {
+                    ForEach(choices, id: \.self) { v in
+                        BatteryChip(label: "\(v) %", on: isOn.wrappedValue && value == v) { choose(v) }
+                            .glassItem(v)
+                    }
                 }
             }
             .opacity(isOn.wrappedValue ? 1 : 0.6)

@@ -8,11 +8,10 @@ struct ProfileModal: View {
     var body: some View {
         ZStack {
             // The only fixed color: a veil that darkens whatever theme is behind it.
-            Color.black.opacity(0.35)
+            Color.black.opacity(0.25)
                 .contentShape(Rectangle())
                 .onTapGesture { app.showProfilePanel = false }
             ProfilePanel()
-                .themedShadow(color: .black.opacity(0.35), radius: 30, y: 12)
                 .transition(.scale(scale: 0.97).combined(with: .opacity))
         }
         .ignoresSafeArea()
@@ -91,9 +90,7 @@ struct ProfilePanel: View {
             .background(keys)
         }
         .frame(width: Self.width, height: Self.height)
-        .background(RoundedRectangle(cornerRadius: Theme.r(20), style: .continuous).fill(Theme.bg))
-        .overlay(RoundedRectangle(cornerRadius: Theme.r(20), style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: Theme.line))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r(20), style: .continuous))
+        .floatingSurface(radius: 20)
     }
 
     /// Esc closes it.

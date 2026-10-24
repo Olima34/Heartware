@@ -224,13 +224,12 @@ struct ToolboxChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(mono ? .mono(11.5, selected ? .semibold : .regular) : .ui(11.5, selected ? .semibold : .medium))
-                .foregroundStyle(selected ? Theme.onAccent : Theme.text2)
+                .font(mono ? .mono(11.5, .medium) : .ui(11.5, .medium))
+                .foregroundStyle(selected ? Theme.text : Theme.text2)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(PillShape().fill(selected ? Theme.accent : Theme.bg))
-                .overlay(PillShape().strokeBorder(selected ? Color.clear : Theme.border, lineWidth: Theme.line))
-                .contentShape(PillShape())
+                .frame(height: 26)
+                .chipGround(selected, still: true)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

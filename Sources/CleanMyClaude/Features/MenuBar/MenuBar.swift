@@ -150,13 +150,17 @@ struct MenuBarPanel: View {
                 // Switches contributed by modules (Caféine, presse-papiers…).
                 FlowLayout(spacing: 6, lineSpacing: 6) {
                     ForEach(toggles) { t in
+                        // A switch that is on lights its icon only: a panel of lit pills would be all accent.
                         Button { t.toggle() } label: {
-                            Label(t.title, systemImage: t.symbol)
-                                .font(.ui(11, .medium))
-                                .foregroundStyle(t.isOn ? Theme.onAccent : Theme.text2)
-                                .padding(.horizontal, 9).padding(.vertical, 5)
-                                .background(PillShape().fill(t.isOn ? Theme.accent : Theme.card))
-                                .overlay(PillShape().strokeBorder(t.isOn ? Color.clear : Theme.border))
+                            HStack(spacing: 5) {
+                                Image(systemName: t.symbol).foregroundStyle(t.isOn ? Theme.accent : Theme.text3)
+                                Text(t.title)
+                            }
+                            .font(.ui(11, .medium))
+                            .foregroundStyle(t.isOn ? Theme.text : Theme.text2)
+                            .padding(.horizontal, 9).frame(height: 26)
+                            .chipGround(t.isOn, still: true)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
