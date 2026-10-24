@@ -163,15 +163,8 @@ jobs:
             echo "::error::L'app signée ne désigne pas le certificat $HASH : rien n'est publié."
             exit 1
           fi
-          # While the repository keeps the name the copies installed before Heartware know, the app goes in the archive
-          # under the file name they look for (the new versions take any) and publish adds the archive under their name.
-          NAME="Heartware.app"
-          if [[ "$GITHUB_REPOSITORY" == */CleanMyClaude ]]; then
-            NAME="Clean My Claude.app"
-            mv "$APP" "$WORK/app/$NAME"
-          fi
           rm -f "$ZIP"
-          (cd "$WORK/app" && ditto -c -k --keepParent "$NAME" "$ZIP")
+          (cd "$WORK/app" && ditto -c -k --keepParent "Heartware.app" "$ZIP")
           echo "App signée par le certificat $HASH"
       - name: Upload the signed app
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -259,13 +252,4 @@ jobs:
         if: steps.published.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # The archive under its old name too, for the copies installed before Heartware (see sign).
-          EXTRA=()
-          if [[ "$GITHUB_REPOSITORY" == */CleanMyClaude ]]; then
-            cp build/Heartware.zip build/CleanMyClaude.zip
-            EXTRA=(build/CleanMyClaude.zip)
-            if [[ -f build/Heartware.zip.sig ]]; then cp build/Heartware.zip.sig build/CleanMyClaude.zip.sig; EXTRA+=(build/CleanMyClaude.zip.sig); fi
-          fi
-          ./scripts/publish_release.sh "${{ needs.build.outputs.version }}" build/Heartware.zip ${EXTRA[@]+"${EXTRA[@]}"}
+        run: ./scripts/publish_release.sh "${{ needs.build.outputs.version }}" build/Heartware.zip
