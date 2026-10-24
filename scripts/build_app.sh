@@ -64,12 +64,24 @@ for s in 16 32 128 256 512; do
   sips -z $d $d "$ICON_WORK/icon-1024.png" --out "$ICON_WORK/AppIcon.iconset/icon_${s}x${s}@2x.png" >/dev/null
 done
 iconutil -c icns "$ICON_WORK/AppIcon.iconset" -o "$ICON_WORK/AppIcon.icns"
+# From macOS 26 on, the icon also has its dark version (design/icone/AppIcon.icon): Xcode 26's actool compiles it into
+# Assets.car; an older actool cannot, and the app keeps the .icns alone.
+ICON_NAME_KEY=""
+mkdir -p "$ICON_WORK/car"
+xcrun actool --compile "$ICON_WORK/car" --platform macosx --minimum-deployment-target 14.0 --app-icon AppIcon \
+  --output-partial-info-plist "$ICON_WORK/car/partial.plist" "$ROOT/design/icone/AppIcon.icon" >/dev/null 2>&1 || true
+if [[ -f "$ICON_WORK/car/Assets.car" ]]; then
+  ICON_NAME_KEY="<key>CFBundleIconName</key><string>AppIcon</string>"
+else
+  echo "  (actool ne sait pas compiler AppIcon.icon : icône claire seule)"
+fi
 
 echo "→ Assemblage de $BUNDLE_NAME.app ($DISPLAY_NAME)…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$EXEC"
 cp "$ICON_WORK/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+if [[ -n "$ICON_NAME_KEY" ]]; then cp "$ICON_WORK/car/Assets.car" "$APP/Contents/Resources/Assets.car"; fi
 # The name the Finder, the Dock and System Settings show (LSHasLocalizedDisplayName). macOS uses it only while the file
 # name matches the Info.plist's own CFBundleDisplayName (otherwise it takes the bundle for one the user renamed): that
 # one is the file name, these are "Chamois".
@@ -94,6 +106,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>1</string>
   $COMMIT_KEY
   <key>CFBundleIconFile</key><string>AppIcon</string>
+  $ICON_NAME_KEY
   <key>CFBundleDevelopmentRegion</key><string>fr</string>
   <key>CFBundleLocalizations</key><array><string>fr</string><string>en</string></array>
   <key>CFBundleAllowMixedLocalizations</key><true/>
