@@ -5,9 +5,9 @@
 # the permissions (Full Disk Access, Accessibility, folders, automation…) from one rebuild to the next.
 #
 # Why a keychain of its own: in the session keychain, unlocked all session long with codesign allowed to use the key,
-# any program run under the account could have codesign sign, without a window, a fake app with Clean My Claude's
+# any program run under the account could have codesign sign, without a window, a fake app with Heartware's
 # identifier. It would have the same designated requirement as the real one, inherit the permissions given to
-# Clean My Claude and read its keychain items (the API key). Here codesign signs only once this keychain's password has
+# Heartware and read its keychain items (the API key). Here codesign signs only once this keychain's password has
 # been typed: scripts/build_app.sh and the app's updates ask for it, sign, then lock the keychain again.
 #
 # The certificate is self-signed and only exists on this Mac: it proves nothing to anybody else and changes no trust
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 NAME="Clean My Claude Dev"
-KEYCHAIN="${CMC_SIGNING_KEYCHAIN:-$HOME/Library/Keychains/cleanmyclaude-signing.keychain-db}"
+KEYCHAIN="${HW_SIGNING_KEYCHAIN:-$HOME/Library/Keychains/cleanmyclaude-signing.keychain-db}"
 LOGIN="$HOME/Library/Keychains/login.keychain-db"
 
 # The SHA-1 of the "Clean My Claude Dev" identity in a keychain (read without unlocking it), or nothing.
@@ -101,7 +101,7 @@ if [[ -n "$OLD" ]]; then
   echo
   echo "⚠︎ Un ancien certificat « $NAME » ($OLD) est encore dans ton trousseau de session."
   echo "  Tant qu'il y reste, n'importe quel programme lancé sous ton compte peut signer avec lui, sans fenêtre,"
-  echo "  une fausse app qui hériterait des autorisations de Clean My Claude. Sa clé ne peut pas être déplacée."
+  echo "  une fausse app qui hériterait des autorisations de Heartware. Sa clé ne peut pas être déplacée."
   echo "  Le supprimer ne touche à rien d'autre ; les copies de l'app signées avec lui (celle installée, par exemple)"
   echo "  seront re-signées avec le nouveau certificat à la prochaine compilation ou mise à jour, et macOS te"
   echo "  redemandera une dernière fois les autorisations (Réglages › Autorisations › Tout autoriser)."

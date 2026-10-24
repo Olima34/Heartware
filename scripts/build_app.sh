@@ -1,29 +1,27 @@
 #!/bin/zsh
-# Builds the app, shown by macOS as "Chamois", in its bundle "Clean My Claude.app" (release), and installs it in ~/Applications.
+# Builds the app, shown by macOS as "Heartware", in its bundle "Heartware.app" (release), and installs it in ~/Applications.
 # Usage: ./scripts/build_app.sh [--no-install] [--zip] [--universal] [--binary=<chemin>]
 #   --universal : Apple Silicon et Intel dans la même app (pour les versions publiées).
 #   --binary=<chemin> : un exécutable déjà compilé (la CI compile chaque architecture sur sa machine, puis les réunit).
-#   CMC_VERSION=0.3.0 : numéro de version (sinon celui de scripts/version.sh : dernière étiquette vX.Y.Z + commits depuis).
+#   HW_VERSION=0.3.0 : numéro de version (sinon celui de scripts/version.sh : dernière étiquette vX.Y.Z + commits depuis).
 set -euo pipefail
 
 ROOT="${0:A:h:h}"
 cd "$ROOT"
 
-EXEC="CleanMyClaude"
-# What macOS shows (menu bar, Dock, Finder, System Settings), and the bundle's file name: the versions already installed
-# look for "Clean My Claude.app" in the archive to update themselves, so the file keeps that name for now; the Finder
-# and the Dock still show "Chamois" (a localized display name, like Apple's own apps).
-DISPLAY_NAME="Chamois"
-BUNDLE_NAME="Clean My Claude"
+EXEC="Heartware"
+# What macOS shows (menu bar, Dock, Finder, System Settings), and the bundle's file name.
+DISPLAY_NAME="Heartware"
+BUNDLE_NAME="Heartware"
 BUILD_DIR="$ROOT/build"
 APP="$BUILD_DIR/$BUNDLE_NAME.app"
-# The version: CMC_VERSION (the CI passes the one it publishes), else that of this commit: the latest vX.Y.Z tag plus
+# The version: HW_VERSION (the CI passes the one it publishes), else that of this commit: the latest vX.Y.Z tag plus
 # the commits since, the number the CI gives the same commit.
-VERSION="${CMC_VERSION:-$("$ROOT/scripts/version.sh")}"
+VERSION="${HW_VERSION:-$("$ROOT/scripts/version.sh")}"
 # The commit the app is built from: compared with GitHub, it tells which changes a new version brings.
 COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 COMMIT_KEY=""
-[[ -n "$COMMIT" ]] && COMMIT_KEY="<key>CMCCommit</key><string>$COMMIT</string>"
+[[ -n "$COMMIT" ]] && COMMIT_KEY="<key>HeartwareCommit</key><string>$COMMIT</string>"
 INSTALL=1
 ZIP=0
 UNIVERSAL=0
@@ -83,8 +81,7 @@ cp "$BIN" "$APP/Contents/MacOS/$EXEC"
 cp "$ICON_WORK/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 if [[ -n "$ICON_NAME_KEY" ]]; then cp "$ICON_WORK/car/Assets.car" "$APP/Contents/Resources/Assets.car"; fi
 # The name the Finder, the Dock and System Settings show (LSHasLocalizedDisplayName). macOS uses it only while the file
-# name matches the Info.plist's own CFBundleDisplayName (otherwise it takes the bundle for one the user renamed): that
-# one is the file name, these are "Chamois".
+# name matches the Info.plist's own CFBundleDisplayName (otherwise it takes the bundle for one the user renamed).
 for lang in fr en; do
   mkdir -p "$APP/Contents/Resources/$lang.lproj"
   printf 'CFBundleDisplayName = "%s";\nCFBundleName = "%s";\n' "$DISPLAY_NAME" "$DISPLAY_NAME" \
@@ -135,7 +132,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <array>
     <dict>
       <key>CFBundleURLName</key><string>io.github.olima34.cleanmyclaude</string>
-      <key>CFBundleURLSchemes</key><array><string>cleanmyclaude</string></array>
+      <key>CFBundleURLSchemes</key><array><string>heartware</string></array>
     </dict>
   </array>
   <key>CFBundleDocumentTypes</key>
@@ -153,11 +150,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # Signature. With a stable identity, macOS keeps the permissions (Full Disk Access, Accessibility, folders…)
-# from one rebuild to the next. In order: CMC_SIGN_IDENTITY if set, else the local certificate made by
+# from one rebuild to the next. In order: HW_SIGN_IDENTITY if set, else the local certificate made by
 # scripts/setup_signing.sh ("Clean My Claude Dev", in its own locked keychain), else the same certificate made by an
 # earlier version of that script in the session keychain, else ad hoc (macOS then forgets the permissions at every rebuild).
-IDENTITY="${CMC_SIGN_IDENTITY:-}"
-SIGN_KEYCHAIN="${CMC_SIGNING_KEYCHAIN:-$HOME/Library/Keychains/cleanmyclaude-signing.keychain-db}"
+IDENTITY="${HW_SIGN_IDENTITY:-}"
+SIGN_KEYCHAIN="${HW_SIGNING_KEYCHAIN:-$HOME/Library/Keychains/cleanmyclaude-signing.keychain-db}"
 KEYCHAIN_ARGS=()
 # The SHA-1 of the local certificate (it is self-signed, hence "not trusted": codesign accepts it by its hash).
 local_identity() { security find-identity -p codesigning "$@" 2>/dev/null | awk '/"Clean My Claude Dev"/ {print $2; exit}'; }
@@ -214,8 +211,8 @@ fi
 rm -f "$ENTITLEMENTS"
 
 if [[ $ZIP -eq 1 ]]; then
-  (cd "$BUILD_DIR" && rm -f CleanMyClaude.zip && ditto -c -k --keepParent "$BUNDLE_NAME.app" CleanMyClaude.zip)
-  echo "✓ Archive : $BUILD_DIR/CleanMyClaude.zip"
+  (cd "$BUILD_DIR" && rm -f Heartware.zip && ditto -c -k --keepParent "$BUNDLE_NAME.app" Heartware.zip)
+  echo "✓ Archive : $BUILD_DIR/Heartware.zip"
 fi
 
 if [[ $INSTALL -eq 1 ]]; then

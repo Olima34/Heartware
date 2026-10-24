@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="docs/icon.png" alt="Icône de Chamois : un petit chamois qui trie des feuilles au pied des montagnes" width="150">
+  <img src="docs/icon.png" alt="Icône de Heartware : trois orbites autour d'un cœur de verre rouge" width="150">
 </p>
 
-<h1 align="center">Chamois</h1>
+<h1 align="center">Heartware</h1>
 
-<p align="center"><b>Ton Mac propre, rapide et bien rangé, avec un petit chamois qui veille sur lui.<br>Une seule app, gratuite.</b></p>
+<p align="center"><b>Ton Mac propre, rapide et bien rangé.<br>Une seule app, gratuite.</b></p>
 
 <p align="center">
-  <a href="https://github.com/Olima34/CleanMyClaude/releases/latest/download/CleanMyClaude.zip"><b>⬇&nbsp; Télécharger pour Mac</b></a>
+  <a href="https://github.com/Olima34/Heartware/releases/latest/download/Heartware.zip"><b>⬇&nbsp; Télécharger pour Mac</b></a>
   <br>
   <sub>macOS 14 Sonoma ou plus récent · Apple Silicon et Intel · gratuit et open source</sub>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Le tableau de bord de Chamois : santé du Mac, stockage, mémoire, processeur, batterie, analyse intelligente, activité en direct, conseils et les outils de ton profil" width="860">
+  <img src="docs/screenshots/dashboard.png" alt="Le tableau de bord de Heartware : santé du Mac, stockage, mémoire, processeur, batterie, analyse intelligente, activité en direct, conseils et les outils de ton profil" width="860">
 </p>
 
 ## Installer en une ligne
@@ -21,7 +21,7 @@
 Ouvre le **Terminal** et colle :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Olima34/CleanMyClaude/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Olima34/Heartware/main/scripts/install.sh | bash
 ```
 
 L'app s'installe dans Applications et s'ouvre. Ensuite, elle te prévient elle-même quand une nouvelle version sort, avec la liste de ce qui change, et se met à jour d'un clic.
@@ -29,13 +29,11 @@ L'app s'installe dans Applications et s'ouvre. Ensuite, elle te prévient elle-m
 <details>
 <summary>Tu préfères télécharger le fichier toi-même ?</summary>
 
-1. Télécharge [CleanMyClaude.zip](https://github.com/Olima34/CleanMyClaude/releases/latest/download/CleanMyClaude.zip) et ouvre-le.
+1. Télécharge [Heartware.zip](https://github.com/Olima34/Heartware/releases/latest/download/Heartware.zip) et ouvre-le.
 2. Glisse l'app dans le dossier Applications.
 3. Au premier lancement, macOS indique qu'il ne peut pas vérifier l'app (elle ne vient pas de l'App Store) : ouvre **Réglages Système › Confidentialité et sécurité** et clique sur **Ouvrir quand même**.
 
 </details>
-
-> Chamois s'appelait **Clean My Claude**. Si tu l'as déjà, rien à faire : elle se met à jour toute seule et prend son nouveau nom. Seul le fichier téléchargé (`CleanMyClaude.zip`) garde l'ancien, le temps de la transition.
 
 ## Ce qu'elle fait pour toi
 

@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Creates, once, the certificate that signs the published versions ("Clean My Claude") and gives it to GitHub: the CI
+# Creates, once, the certificate that signs the published versions ("Heartware") and gives it to GitHub: the CI
 # (.github/workflows/build.yml and release.yml) signs every version with it. Every version then has the same designated
 # requirement, the one macOS ties the permissions (Full Disk Access, Accessibility…) and the app's keychain items to:
 # an update keeps them, nothing to type.
@@ -16,7 +16,7 @@ cd "$ROOT"
 NAME="Clean My Claude"
 SECRET="CMC_CODESIGN_IDENTITY"
 ENVIRONMENT="release"
-SOURCE="Sources/CleanMyClaude/Features/Updates/UpdatesSelfSigning.swift"
+SOURCE="Sources/Heartware/Features/Updates/UpdatesSelfSigning.swift"
 
 cert_in() { sed -nE 's/^ *static let releaseCertificate: String\? = "([0-9A-F]{40})".*/\1/p' "$SOURCE"; }
 

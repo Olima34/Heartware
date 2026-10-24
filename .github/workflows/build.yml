@@ -31,12 +31,12 @@ jobs:
       - name: Compile
         run: |
           swift build -c release --arch "${{ matrix.arch }}"
-          cp "$(swift build -c release --arch "${{ matrix.arch }}" --show-bin-path)/CleanMyClaude" "CleanMyClaude-${{ matrix.arch }}"
+          cp "$(swift build -c release --arch "${{ matrix.arch }}" --show-bin-path)/Heartware" "Heartware-${{ matrix.arch }}"
       - name: Upload the binary
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: binary-${{ matrix.arch }}
-          path: CleanMyClaude-${{ matrix.arch }}
+          path: Heartware-${{ matrix.arch }}
           retention-days: 1
 
   # One app for Apple Silicon and Intel, as before: the two halves joined, the self-tests run on it, the bundle made.
@@ -63,19 +63,19 @@ jobs:
           merge-multiple: true
       - name: Build the app bundle
         env:
-          CMC_VERSION: ${{ steps.version.outputs.version }}
+          HW_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           # Artifacts lose the executable bit: the joined binary gets it back.
-          lipo -create build/arch/CleanMyClaude-arm64 build/arch/CleanMyClaude-x86_64 -output build/arch/CleanMyClaude
-          chmod +x build/arch/CleanMyClaude
-          [[ "$(lipo -archs build/arch/CleanMyClaude)" == *arm64* && "$(lipo -archs build/arch/CleanMyClaude)" == *x86_64* ]]
-          ./scripts/build_app.sh --no-install --zip --binary=build/arch/CleanMyClaude
+          lipo -create build/arch/Heartware-arm64 build/arch/Heartware-x86_64 -output build/arch/Heartware
+          chmod +x build/arch/Heartware
+          [[ "$(lipo -archs build/arch/Heartware)" == *arm64* && "$(lipo -archs build/arch/Heartware)" == *x86_64* ]]
+          ./scripts/build_app.sh --no-install --zip --binary=build/arch/Heartware
       - name: Upload the app
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: CleanMyClaude
-          path: build/CleanMyClaude.zip
+          name: Heartware
+          path: build/Heartware.zip
 
   # The app signed with the release certificate (codesign needs macOS), then handed to publish, which signs the
   # archive on Linux (its openssl knows Ed25519). Like publish, it compiles and runs nothing from the repository.
@@ -93,7 +93,7 @@ jobs:
       - name: Download the app
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: CleanMyClaude
+          name: Heartware
           path: build
       # Written here and not in a script, like the archive's signature; the same step is in release.yml.
       # One certificate signs every version: macOS ties the permissions (Full Disk Access, Accessibility…) and the app's
@@ -104,8 +104,8 @@ jobs:
           CMC_CODESIGN_IDENTITY: ${{ secrets.CMC_CODESIGN_IDENTITY }}
         run: |
           set -euo pipefail
-          ZIP="$PWD/build/CleanMyClaude.zip"
-          SOURCE=Sources/CleanMyClaude/Features/Updates/UpdatesSelfSigning.swift
+          ZIP="$PWD/build/Heartware.zip"
+          SOURCE=Sources/Heartware/Features/Updates/UpdatesSelfSigning.swift
           cert_in() { sed -nE 's/^ *static let releaseCertificate: String\? = "([0-9A-F]{40})".*/\1/p'; }
           # The certificate (SHA-1) the installed copies are signed with: that of the previous version.
           PREVIOUS="$(git tag --merged HEAD --no-contains HEAD --list 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed -n 1p || true)"
@@ -156,21 +156,28 @@ jobs:
           security find-identity -p codesigning "$KEYCHAIN"
           # The hardened runtime and the entitlements given by build_app.sh are kept.
           ditto -x -k "$ZIP" "$WORK/app"
-          APP="$WORK/app/Clean My Claude.app"
+          APP="$WORK/app/Heartware.app"
           codesign --force --deep --preserve-metadata=entitlements,flags,runtime --keychain "$KEYCHAIN" --sign "$HASH" "$APP"
           codesign --verify --deep --strict "$APP"
           if ! codesign -d -r- "$APP" 2>&1 | grep -qi "certificate leaf = H\"$HASH\""; then
             echo "::error::L'app signée ne désigne pas le certificat $HASH : rien n'est publié."
             exit 1
           fi
+          # While the repository keeps the name the copies installed before Heartware know, the app goes in the archive
+          # under the file name they look for (the new versions take any) and publish adds the archive under their name.
+          NAME="Heartware.app"
+          if [[ "$GITHUB_REPOSITORY" == */CleanMyClaude ]]; then
+            NAME="Clean My Claude.app"
+            mv "$APP" "$WORK/app/$NAME"
+          fi
           rm -f "$ZIP"
-          (cd "$WORK/app" && ditto -c -k --keepParent "Clean My Claude.app" "$ZIP")
+          (cd "$WORK/app" && ditto -c -k --keepParent "$NAME" "$ZIP")
           echo "App signée par le certificat $HASH"
       - name: Upload the signed app
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: CleanMyClaude-signed
-          path: build/CleanMyClaude.zip
+          name: Heartware-signed
+          path: build/Heartware.zip
 
   publish:
     needs: [build, sign]
@@ -205,7 +212,7 @@ jobs:
         if: steps.published.outputs.skip != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: CleanMyClaude-signed
+          name: Heartware-signed
           path: build
       # Written here and not in a script: changing what sees the key takes a token allowed to change the workflows.
       # The same step is in release.yml.
@@ -215,8 +222,8 @@ jobs:
           CMC_UPDATE_KEY: ${{ secrets.CMC_UPDATE_KEY }}
         run: |
           set -euo pipefail
-          ZIP=build/CleanMyClaude.zip
-          SOURCE=Sources/CleanMyClaude/Features/Updates/UpdatesSelf.swift
+          ZIP=build/Heartware.zip
+          SOURCE=Sources/Heartware/Features/Updates/UpdatesSelf.swift
           key_in() { sed -nE 's/^ *static let publicKey: String\? = "([A-Za-z0-9+\/=]{44})".*/\1/p'; }
           # The public key (base64 of the raw 32 bytes) the installed copies check against: that of the previous version.
           PREVIOUS="$(git tag --merged HEAD --no-contains HEAD --list 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed -n 1p || true)"
@@ -252,4 +259,13 @@ jobs:
         if: steps.published.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./scripts/publish_release.sh "${{ needs.build.outputs.version }}" build/CleanMyClaude.zip
+        run: |
+          set -euo pipefail
+          # The archive under its old name too, for the copies installed before Heartware (see sign).
+          EXTRA=()
+          if [[ "$GITHUB_REPOSITORY" == */CleanMyClaude ]]; then
+            cp build/Heartware.zip build/CleanMyClaude.zip
+            EXTRA=(build/CleanMyClaude.zip)
+            if [[ -f build/Heartware.zip.sig ]]; then cp build/Heartware.zip.sig build/CleanMyClaude.zip.sig; EXTRA+=(build/CleanMyClaude.zip.sig); fi
+          fi
+          ./scripts/publish_release.sh "${{ needs.build.outputs.version }}" build/Heartware.zip ${EXTRA[@]+"${EXTRA[@]}"}

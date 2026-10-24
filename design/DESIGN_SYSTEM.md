@@ -35,13 +35,13 @@
 
 ### 0.3 Personnalisation par projet
 
-**Chamois** : accent **bleu acier**, celui des électrons de l'icône (`#5B8DEF` en sombre, `#3773EB` en clair : thème Graphite de `UI/ThemeCatalog.swift`) ; nom « Chamois » ; icône de l'app « Verre », un atome autour d'un cœur de verre, claire et sombre (`design/icone/`) ; la tête du chamois (`BrandMark`) reste la marque dans l'app. Graphite pur est la variante « graphite pur » ci-dessous (sans accent, sélection à l'encre).
+**Heartware** : accent **bleu acier**, celui des électrons de l'icône (`#5B8DEF` en sombre, `#3773EB` en clair : thème Graphite de `UI/ThemeCatalog.swift`) ; nom « Heartware » ; icône de l'app « Verre », un atome autour d'un cœur de verre, claire et sombre (`design/icone/`) ; la mascotte (`BrandMark`, `PixelMascot`) reste un petit chamois en attendant la sienne. Graphite pur est la variante « graphite pur » ci-dessous (sans accent, sélection à l'encre).
 
 Dans ce projet, la règle SDK de `CLAUDE.md` passe avant la section 8 : rien au-delà de macOS 15 (la CI compile avec Xcode 16), donc ni `glassEffect` ni `#available(macOS 26, *)`. Le verre vient de `NSVisualEffectView` (fenêtre, panneaux) et des matériaux SwiftUI ; la bulle et les surfaces sont dans `UI/Components/Glass.swift`.
 
 ```css
 :root {
-  --accent-h: 220;    /* teinte de l'accent (HSL) : 220 = bleu acier (Chamois) ; 15 = terracotta (ClaudeStats) */
+  --accent-h: 220;    /* teinte de l'accent (HSL) : 220 = bleu acier (Heartware) ; 15 = terracotta (ClaudeStats) */
   --accent-s: 82%;
   --accent-l: 65%;    /* en sombre ; la version claire est dérivée plus bas */
 }

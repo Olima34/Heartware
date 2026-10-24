@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "CleanMyClaude",
+    name: "Heartware",
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(
-            name: "CleanMyClaude",
-            path: "Sources/CleanMyClaude",
+            name: "Heartware",
+            path: "Sources/Heartware",
             linkerSettings: [
                 .linkedFramework("IOKit"),
                 .linkedFramework("Security"),
