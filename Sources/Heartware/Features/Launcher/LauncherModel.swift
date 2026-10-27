@@ -466,6 +466,14 @@ final class LauncherModel: AppModule {
         if Self.contentPredicate("numéro siret").predicateFormat != #"kMDItemTextContent BEGINSWITH[cd] "numéro" AND kMDItemTextContent BEGINSWITH[cd] "siret""# {
             failures.append("contenu : chaque mot doit commencer un mot du texte (\(Self.contentPredicate("numéro siret").predicateFormat))")
         }
+        // Spotlight reads the query when its scopes are set, and throws (the app stops) on one it cannot take.
+        for text in ["siret", "numéro siret"] {
+            for namesToo in [false, true] {
+                let mq = NSMetadataQuery()
+                mq.predicate = Self.spotlightPredicate(text, namesToo: namesToo)
+                mq.searchScopes = [NSMetadataQueryUserHomeScope]
+            }
+        }
         if Self.isUserFile(h + "/Library/Mail/V10/x.emlx", home: h) || Self.isUserFile(h + "/Documents/.cache/a.txt", home: h)
             || !Self.isUserFile(h + "/Library/Mobile Documents/com~apple~CloudDocs/Kbis.pdf", home: h) || !Self.isUserFile(h + "/Documents/Kbis.pdf", home: h) {
             failures.append("contenu : les courriels et caches doivent rester hors des résultats, iCloud Drive dedans")
@@ -1331,9 +1339,20 @@ final class LauncherModel: AppModule {
     /// The files whose text has a word starting with each typed word: "siret" finds "SIRET :" (a word cut at its start
     /// would take Spotlight thirty times longer).
     nonisolated static func contentPredicate(_ text: String) -> NSPredicate {
-        NSCompoundPredicate(andPredicateWithSubpredicates: text.split(separator: " ").map {
-            NSPredicate(format: "kMDItemTextContent BEGINSWITH[cd] %@", String($0))
-        })
+        let words = text.split(separator: " ").map { NSPredicate(format: "kMDItemTextContent BEGINSWITH[cd] %@", String($0)) }
+        // NSMetadataQuery throws on an AND of a single predicate.
+        return words.count == 1 ? words[0] : NSCompoundPredicate(andPredicateWithSubpredicates: words)
+    }
+
+    /// The file window's Spotlight query: the files that hold the words, and those named so too (`namesToo`), no app.
+    nonisolated static func spotlightPredicate(_ text: String, namesToo: Bool) -> NSPredicate {
+        let content = contentPredicate(text)
+        let wanted = namesToo
+            ? NSCompoundPredicate(orPredicateWithSubpredicates: [content, NSPredicate(format: "kMDItemDisplayName CONTAINS[cd] %@", text)])
+            : content
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [
+            wanted, NSPredicate(format: "NOT (kMDItemContentType == 'com.apple.application-bundle')")
+        ])
     }
 
     func isPathQuery(_ q: String) -> Bool {
@@ -1421,13 +1440,7 @@ final class LauncherModel: AppModule {
         stopSpotlight(fileQuery)
         if let fileObserver { NotificationCenter.default.removeObserver(fileObserver) }
         let mq = NSMetadataQuery()
-        let content = Self.contentPredicate(text)
-        let wanted = namesToo
-            ? NSCompoundPredicate(orPredicateWithSubpredicates: [content, NSPredicate(format: "kMDItemDisplayName CONTAINS[cd] %@", text)])
-            : content
-        mq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            wanted, NSPredicate(format: "NOT (kMDItemContentType == 'com.apple.application-bundle')")
-        ])
+        mq.predicate = Self.spotlightPredicate(text, namesToo: namesToo)
         mq.searchScopes = [NSMetadataQueryUserHomeScope]
         mq.sortDescriptors = [NSSortDescriptor(key: "kMDItemLastUsedDate", ascending: false)]
         // Gathered and sorted on the Spotlight queue: thousands of matches never weigh on the main thread.
