@@ -51,9 +51,7 @@ enum Remover {
     static func isSafe(_ raw: String) -> Bool {
         let path = (raw as NSString).standardizingPath
         guard path.hasPrefix("/"), !path.contains("/../") else { return false }
-        // An excluded path is never touched, nor is a folder that holds one.
-        if Preferences.exclusions.map({ ($0 as NSString).standardizingPath })
-            .contains(where: { path == $0 || path.hasPrefix($0 + "/") || $0.hasPrefix(path + "/") }) { return false }
+        if isExcluded(path) { return false }
         if path.hasPrefix(ActionLog.folder) || path == DataStore.folder || path.hasPrefix(DataStore.folder + "/") { return false }
 
         let home = FS.home
@@ -70,6 +68,39 @@ enum Remover {
         if path.hasPrefix("/Applications/") { return path.hasSuffix(".app") }
         if let tmp = FS.userTempDir.map({ ($0 as NSString).standardizingPath }), path.hasPrefix(tmp + "/") { return true }
         return false
+    }
+
+    /// An excluded path is never touched, nor is a folder that holds one.
+    private static func isExcluded(_ path: String) -> Bool {
+        Preferences.exclusions.map { ($0 as NSString).standardizingPath }
+            .contains { path == $0 || path.hasPrefix($0 + "/") || $0.hasPrefix(path + "/") }
+    }
+
+    enum Refusal: LocalizedError {
+        case protected
+
+        var errorDescription: String? { "Heartware ne touche pas à cet emplacement." }
+    }
+
+    /// Moves to the Trash a file the user chose (dropped on the wheel) and says where it went, so that it can come back.
+    /// Wherever `isSafe` allows, and also inside iCloud Drive or on another disk, never their top folder.
+    static func trashChosen(_ url: URL) throws -> URL {
+        guard !DemoData.isEnabled else { throw FileOps.Failure.demo }
+        // The folder's links resolved ("/Volumes/Macintosh HD/Users/…" is the home folder), not the file's own.
+        let path = (url.deletingLastPathComponent().resolvingSymlinksInPath().appendingPathComponent(url.lastPathComponent).path
+                    as NSString).standardizingPath
+        let cloud = FS.home + "/Library/Mobile Documents/com~apple~CloudDocs/"
+        let elsewhere = (path.hasPrefix(cloud) && path.count > cloud.count)
+            || (path.hasPrefix("/Volumes/") && !path.contains("/../") && path.split(separator: "/").count >= 3)
+        guard isSafe(path) || (elsewhere && !isExcluded(path)) else {
+            ActionLog.write("REFUSÉ \(path)")
+            throw Refusal.protected
+        }
+        var trashed: NSURL?
+        try FS.fm.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &trashed)
+        ActionLog.write("CORBEILLE (choisi) \(path)")
+        // Always given back on a success; without it « Annuler » says the file did not come back.
+        return (trashed as URL?) ?? URL(fileURLWithPath: path)
     }
 
     static func remove(_ entries: [RemovalEntry], mode: RemovalMode) -> RemovalReport {
@@ -183,8 +214,7 @@ enum Remover {
         let dir = isDirectory ?? (FS.isDirectory(path) && !FS.isSymlink(path))
         let own = [Bundle.main.bundlePath, DataStore.folder, ActionLog.folder].map { ($0 as NSString).standardizingPath }
         if own.contains(where: { path == $0 || path.hasPrefix($0 + "/") || $0.hasPrefix(path + "/") }) { return false }
-        if Preferences.exclusions.map({ ($0 as NSString).standardizingPath })
-            .contains(where: { path == $0 || path.hasPrefix($0 + "/") || $0.hasPrefix(path + "/") }) { return false }
+        if isExcluded(path) { return false }
         let home = FS.home
         if path.hasPrefix(home + "/") {
             let rel = path.dropFirst(home.count + 1).split(separator: "/").map(String.init)

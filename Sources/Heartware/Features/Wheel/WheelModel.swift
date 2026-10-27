@@ -203,7 +203,8 @@ final class WheelModel: AppModule {
             let destination = settings.destination, custom = settings.folder
             let ffmpeg = ffmpegPath ?? Shell.which("ffmpeg")
             runner.run(action, files: files, at: point, under: window) { control, onStep in
-                let place = WheelJobs.folder(for: files[0].url, destination: destination, custom: custom)
+                // The Trash writes no copy.
+                let place = action == .trash ? (folder: nil, note: nil) : WheelJobs.folder(for: files[0].url, destination: destination, custom: custom)
                 var result = try await WheelJobs.perform(action, files: files, context: .init(folder: place.folder, ffmpeg: ffmpeg),
                                                          control: control, onStep: onStep)
                 if let note = place.note { result.note = [result.note, note].compactMap { $0 }.joined(separator: " ") }
@@ -233,7 +234,7 @@ final class WheelModel: AppModule {
     }
 
     private func record(_ task: WheelTask) {
-        guard !task.result.outputs.isEmpty || task.result.copied != nil else { return }
+        guard !task.result.outputs.isEmpty || task.result.copied != nil || !task.result.trashed.isEmpty else { return }
         settings.lastUsed = Date()
         appModel?.refuge.usedTool("wheel_" + task.action.rawValue)
     }

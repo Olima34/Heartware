@@ -105,7 +105,7 @@ enum WheelChecks {
         let m4a = WheelMenu.make([file("mémo.m4a")], chosen: nil, capabilities: none)
         if m4a.formats.contains(.aac) || m4a.formats.contains(.alac) || m4a.formats.contains(.mp3) { f.append("Un M4A se voit proposer AAC, ALAC ou MP3 sans ffmpeg") }
         let mixed = WheelMenu.make([file("a.jpg"), file("b.mov")], chosen: nil, capabilities: all)
-        if !mixed.formats.isEmpty || mixed.tools != [.zip, .airdrop] { f.append("Une photo et une vidéo ensemble : \(mixed.tools.map(\.label))") }
+        if !mixed.formats.isEmpty || mixed.tools != [.zip, .airdrop, .trash] { f.append("Une photo et une vidéo ensemble : \(mixed.tools.map(\.label))") }
         let zip = WheelMenu.make([file("photos.zip")], chosen: nil, capabilities: all)
         if !zip.tools.contains(.extract) || zip.tools.contains(.zip) { f.append("Une archive ne s'extrait pas ou se recompresse") }
         // The user's own order, with an action that does not suit that file skipped.
@@ -114,6 +114,8 @@ enum WheelChecks {
         for family in WheelFamily.allCases {
             if WheelMenu.make([WheelModel.sample(family)], chosen: nil, capabilities: none).isEmpty { f.append("La roue des \(family.title) est vide") }
             if Set(family.defaultActions).count != family.defaultActions.count { f.append("Une action en double sur la roue des \(family.title)") }
+            if !WheelMenu.make([WheelModel.sample(family)], chosen: nil, capabilities: none).tools.contains(.trash) { f.append("La roue des \(family.title) n'a pas la Corbeille") }
+            if WheelAction.trash.hubOperation(family) != nil || !WheelAction.trash.coveredInHub(family) { f.append("La Corbeille s'invite dans la fenêtre du Convertisseur") }
         }
         for a in WheelAction.allCases {
             if a.label.count > 11 { f.append("L'étiquette « \(a.label) » ne tient pas dans son segment") }
@@ -130,7 +132,15 @@ enum WheelChecks {
         if s.enabled || !s.hold || !s.shake || s.destination != .beside || !s.instant || s.leaveDistance != 3.5 {
             f.append("Un réglage absent ne prend pas sa valeur par défaut")
         }
-        if s.layouts["image"] != [.crop, .png] { f.append("Une action inconnue efface toute la roue choisie") }
+        if s.layouts["image"] != [.crop, .png, .trash] { f.append("Une action inconnue efface toute la roue choisie, ou la Corbeille n'y est pas ajoutée") }
+        let kept = #"{"trashAdded": true, "layouts": {"pdf": ["word", "zip"]}}"#
+        if (try? JSONDecoder().decode(WheelSettings.self, from: Data(kept.utf8)))?.layouts["pdf"] != [.word, .zip] {
+            f.append("La Corbeille revient sur une roue d'où elle a été retirée")
+        }
+        let full: [WheelAction] = [.png, .crop, .backdrop, .annotate, .redact, .cutout, .compress, .resize, .metadata, .rotate]
+        if WheelSettings.addingTrash(full) != [.png, .crop, .backdrop, .annotate, .redact, .cutout, .compress, .resize, .trash, .metadata, .rotate] {
+            f.append("La Corbeille ajoutée à un anneau plein n'y tient pas")
+        }
         if let back = try? JSONDecoder().decode(WheelSettings.self, from: JSONEncoder().encode(s)), back != s { f.append("Les réglages ne se relisent pas") }
         if s.folder != nil || s.lastUsed != nil { f.append("Un dossier des copies ou une date d'usage sortis de nulle part") }
         let folder = #"{"destination": "folder", "folder": "/Users/exemple/Copies"}"#

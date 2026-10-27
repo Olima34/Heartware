@@ -220,4 +220,11 @@ enum LauncherDemoFiles {
          "Downloads/rapport-annuel-2025.pdf", "Documents/Atelier/Planning printemps.numbers", "Pictures/Vacances Bretagne/Plage de Pen Hat.jpg",
          "Desktop/Présentation client.key"].map { (FS.home + "/" + $0, false) }
     }
+
+    /// The fictional files whose text holds a word (« siret » in the invoices of the Atelier).
+    static func containing(_ text: String) -> [String] {
+        guard "siret".hasPrefix(Fuzzy.fold(text)) else { return [] }
+        return ["Documents/Factures/2026/Facture Atelier Lumen.pdf", "Documents/Atelier/Devis Atelier Lumen.pdf",
+                "Documents/Administratif/Attestation assurance habitation.pdf"].map { FS.home + "/" + $0 }
+    }
 }

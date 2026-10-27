@@ -168,10 +168,28 @@ final class WheelRunner {
                  symbol: "doc.on.doc.fill")
     }
 
-    /// The copies go to the Trash (the original was never touched); renamed files get their old names back.
+    /// The copies go to the Trash (the original was never touched); renamed files get their old names back, trashed ones
+    /// their place.
     func undo(_ task: WheelTask) {
         let outputs = task.result.outputs
-        guard !outputs.isEmpty, task.state == .done else { return }
+        guard task.state == .done else { return }
+        if !task.result.trashed.isEmpty {
+            task.state = .undone
+            let back = task.result.trashed
+            Task.detached(priority: .userInitiated) {
+                // Never over a file made there since: it comes back as "nom 2".
+                let failed = back.filter { (try? FileOps.move($0.to, to: $0.from)) == nil }.count
+                await MainActor.run {
+                    if failed > 0 {
+                        task.state = .done
+                        HUD.show("\(Fmt.plural(failed, "élément n'est pas revenu", "éléments ne sont pas revenus")) : il est encore dans la Corbeille.",
+                                 symbol: "exclamationmark.triangle.fill")
+                    }
+                }
+            }
+            return
+        }
+        guard !outputs.isEmpty else { return }
         task.state = .undone
         if !task.result.renamed.isEmpty {
             let back = task.result.renamed.map { (url: $0.to, newName: $0.from.lastPathComponent) }
@@ -406,6 +424,7 @@ struct WheelTaskRow: View {
         case .done:
             if !task.result.codes.isEmpty { return task.result.codes.count == 1 ? "Code lu et copié" : "\(Fmt.int(task.result.codes.count)) codes lus et copiés" }
             if !task.result.renamed.isEmpty { return Fmt.plural(task.result.renamed.count, "fichier renommé", "fichiers renommés") }
+            if !task.result.trashed.isEmpty, task.count > 1 { return Fmt.plural(task.result.trashed.count, "élément dans la Corbeille", "éléments dans la Corbeille") }
             if task.result.copied != nil { return "Texte copié" }
             if let first = task.result.outputs.first {
                 return task.result.outputs.count == 1 ? first.lastPathComponent : "\(Fmt.int(task.result.outputs.count)) fichiers créés"
@@ -425,6 +444,7 @@ struct WheelTaskRow: View {
         case .done:
             if let code = task.result.codes.first { return code }
             if !task.result.renamed.isEmpty { return "Sur place · Annuler remet les anciens noms" }
+            if !task.result.trashed.isEmpty { return task.result.note ?? (task.count == 1 ? "Dans la Corbeille" : "Annuler les remet à leur place") }
             if let text = task.result.copied {
                 let words = text.split { $0 == " " || $0 == "\n" }.count
                 return "\(Fmt.plural(words, "mot", "mots")) dans le presse-papiers, prêts à coller"
@@ -438,6 +458,7 @@ struct WheelTaskRow: View {
         case .cancelled:
             return "Arrêté : rien n'a été gardé."
         case .undone:
+            if !task.result.trashed.isEmpty { return task.count == 1 ? "Remis à sa place." : "Remis à leur place." }
             return task.result.renamed.isEmpty ? "Mis à la Corbeille." : "Les anciens noms sont revenus."
         }
     }
@@ -464,6 +485,9 @@ struct WheelTaskRow: View {
                 WheelIconButton(symbol: "arrow.uturn.backward",
                                 help: task.result.renamed.isEmpty ? "Annuler : la copie va à la Corbeille" : "Annuler : les anciens noms reviennent") { runner.undo(task) }
             }
+        case .done where !task.result.trashed.isEmpty:
+            WheelSmallButton(title: "Annuler", symbol: "arrow.uturn.backward") { runner.undo(task) }
+                .help("Remettre à sa place")
         default:
             if hovering {
                 WheelIconButton(symbol: "xmark", help: "Retirer") { runner.dismiss(task) }

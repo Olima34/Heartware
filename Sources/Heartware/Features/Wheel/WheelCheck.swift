@@ -142,6 +142,15 @@ enum WheelEngineCheck {
             guard Remover.trashOwnOutput(out), !FileManager.default.fileExists(atPath: out.path) else { throw ConverterError.failed("la copie n'est pas partie à la Corbeille") }
             return []
         }
+        await attempt("Fichier · Corbeille, puis Annuler") {
+            let doc = try FileOps.write(Data("SIRET 000 000 000".utf8), to: dir.appendingPathComponent("à jeter.txt"))
+            let r = try WheelJobs.trash([WheelFile(url: doc, kind: .document)])
+            guard let pair = r.trashed.first, !FileManager.default.fileExists(atPath: doc.path), FileManager.default.fileExists(atPath: pair.to.path)
+            else { throw ConverterError.failed("le fichier n'est pas parti à la Corbeille") }
+            // What « Annuler » does: back where it was.
+            guard try FileOps.move(pair.to, to: pair.from).path == doc.path else { throw ConverterError.failed("le fichier n'est pas revenu à sa place") }
+            return [doc]
+        }
         await attempt("Photo · Sans la position") {
             let out = try ConverterImageEngine.stripMetadata(photo, mode: .gps, folder: nil, control: control).url
             if ConverterImageEngine.hasGPS(out) { throw ConverterError.failed("la position est restée") }

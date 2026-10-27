@@ -11,6 +11,8 @@ struct WheelResult: Sendable {
     var codes: [String] = []
     /// Renamed in place (« Annuler » puts the old names back instead of using the Trash).
     var renamed: [ConverterRenamePair] = []
+    /// Put in the Trash: where each one was, and where it is now (« Annuler » puts it back).
+    var trashed: [ConverterRenamePair] = []
 }
 
 /// The actions done at once, off the main thread. Most go through the converter's engines; each file gets its own copy,
@@ -34,6 +36,8 @@ enum WheelJobs {
             return try await converter(.pdfMerge, files, context, control) { $0.mergeBookmarks = true }
         case .zip:
             return try await converter(.archiveZip, files, context, control) { $0.zipMode = .together }
+        case .trash:
+            return try trash(files)
         default:
             break
         }
@@ -138,9 +142,27 @@ enum WheelJobs {
         case .zip:
             return try await converter(.archiveZip, [file], context, control) { $0.zipMode = .together }
         case .crop, .backdrop, .annotate, .redact, .compress, .resize, .metadata, .pdfPages, .trim, .frame, .videoCompress,
-             .merge, .airdrop, .copyPath, .sign, .convert, .pdfSplit, .rename:
+             .merge, .airdrop, .copyPath, .sign, .convert, .pdfSplit, .rename, .trash:
             throw ConverterError.unsupported("« \(action.title) » ne se fait pas ainsi.")
         }
+    }
+
+    /// Every file to the Trash; one that cannot go (a protected place) does not hold back the others.
+    static func trash(_ files: [WheelFile]) throws -> WheelResult {
+        var result = WheelResult()
+        var refusal: Error?
+        for file in files {
+            do {
+                result.trashed.append(ConverterRenamePair(from: file.url, to: try Remover.trashChosen(file.url)))
+            } catch {
+                refusal = refusal ?? error
+            }
+        }
+        if let refusal {
+            if result.trashed.isEmpty { throw refusal }
+            result.note = "\(Fmt.plural(files.count - result.trashed.count, "élément est resté", "éléments sont restés")) : \(refusal.localizedDescription)"
+        }
+        return result
     }
 
     /// One of the converter's operations, with its default options changed by `adjust`.

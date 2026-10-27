@@ -71,14 +71,14 @@ enum WheelFamily: String, CaseIterable, Identifiable, Codable, Sendable {
     /// The wheel of a family before the user changes it: formats first (the inner ring), then the tools (the outer one).
     var defaultActions: [WheelAction] {
         switch self {
-        case .image: return [.jpeg, .png, .heic, .pdf, .crop, .backdrop, .annotate, .redact, .cutout, .compress, .resize, .metadata]
-        case .pdf: return [.word, .jpeg, .png, .text, .sign, .pdfCompress, .pdfPages, .pdfRotate, .copyText, .merge, .airdrop, .zip]
-        case .video: return [.mp4, .mov, .gif, .sound, .videoCompress, .trim, .frame, .mute, .airdrop, .zip]
-        case .audio: return [.aac, .mp3, .wav, .flac, .alac, .trim, .airdrop, .zip]
-        case .document: return [.pdf, .word, .text, .html, .sign, .copyText, .airdrop, .zip]
-        case .archive: return [.extract, .airdrop, .copyPath]
-        case .folder: return [.zip, .airdrop, .copyPath]
-        case .other: return [.zip, .airdrop, .copyPath]
+        case .image: return [.jpeg, .png, .heic, .pdf, .crop, .backdrop, .annotate, .redact, .cutout, .compress, .resize, .trash]
+        case .pdf: return [.word, .jpeg, .png, .text, .sign, .pdfCompress, .pdfPages, .copyText, .merge, .airdrop, .zip, .trash]
+        case .video: return [.mp4, .mov, .gif, .sound, .videoCompress, .trim, .frame, .mute, .airdrop, .zip, .trash]
+        case .audio: return [.aac, .mp3, .wav, .flac, .alac, .trim, .airdrop, .zip, .trash]
+        case .document: return [.pdf, .word, .text, .html, .sign, .copyText, .airdrop, .zip, .trash]
+        case .archive: return [.extract, .airdrop, .copyPath, .trash]
+        case .folder: return [.zip, .airdrop, .copyPath, .trash]
+        case .other: return [.zip, .airdrop, .copyPath, .trash]
         }
     }
 
@@ -118,7 +118,7 @@ enum WheelActionGroup: Int, CaseIterable, Identifiable {
 
 /// Everything the wheel can do with the dropped files. Formats sit on the inner ring, tools on the outer one.
 /// Nothing ever touches the original: every action writes a new file next to it (or in Téléchargements), except
-/// « Renommer », which renames in place and can be undone.
+/// « Renommer », which renames in place, and « Corbeille »; both can be undone.
 enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
     // Formats
     case jpeg, png, heic, webp, pdf, word, text, html, rtf, odt
@@ -131,7 +131,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
     // Video and audio tools
     case videoCompress, trim, mute, frame
     // Any file
-    case convert, rename, extract, zip, airdrop, copyPath
+    case convert, rename, extract, zip, airdrop, copyPath, trash
 
     var id: String { rawValue }
 
@@ -145,7 +145,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     /// Offered for any file, whatever its kind.
-    var universal: Bool { self == .zip || self == .airdrop || self == .copyPath || self == .rename }
+    var universal: Bool { self == .zip || self == .airdrop || self == .copyPath || self == .rename || self == .trash }
 
     /// On the wheel, in capitals.
     var label: String {
@@ -198,6 +198,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .zip: return "ZIP"
         case .airdrop: return "AIRDROP"
         case .copyPath: return "CHEMIN"
+        case .trash: return "CORBEILLE"
         }
     }
 
@@ -255,6 +256,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .zip: return "Compresser en ZIP"
         case .airdrop: return "Envoyer par AirDrop"
         case .copyPath: return "Copier le chemin"
+        case .trash: return "Mettre à la Corbeille"
         }
     }
 
@@ -312,6 +314,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .zip: return "Une archive que tout le monde peut ouvrir, Windows compris."
         case .airdrop: return "Vers un iPhone, un iPad ou un Mac à côté."
         case .copyPath: return "Le chemin complet du fichier, prêt à coller."
+        case .trash: return "Le fichier part à la Corbeille ; Annuler le remet à sa place."
         }
     }
 
@@ -353,6 +356,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .zip: return "doc.zipper"
         case .airdrop: return "dot.radiowaves.up.forward"
         case .copyPath: return "link"
+        case .trash: return "trash"
         }
     }
 
@@ -368,7 +372,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .crop, .backdrop, .annotate, .cutout, .rotate, .pdfRotate, .pdfPages, .pdfSplit, .merge, .trim, .frame, .sign: return Theme.brand
         case .redact, .metadata, .strip, .mute: return Theme.palette[2]
         case .compress, .pdfCompress, .videoCompress, .resize, .pdfImages: return Theme.good
-        case .extract, .zip, .airdrop, .copyPath, .rename: return Theme.palette[7]
+        case .extract, .zip, .airdrop, .copyPath, .rename, .trash: return Theme.palette[7]
         }
     }
 
@@ -395,7 +399,7 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .trim: return [.video, .audio]
         case .convert: return [.image, .video, .audio, .document, .markdown]
         case .extract: return [.archive]
-        case .zip, .airdrop, .copyPath, .rename: return Set(ConverterKind.allCases)
+        case .zip, .airdrop, .copyPath, .rename, .trash: return Set(ConverterKind.allCases)
         }
     }
 
@@ -479,13 +483,15 @@ enum WheelAction: String, CaseIterable, Identifiable, Codable, Sendable {
         case .pdfPages, .pdfSplit, .pdfRotate, .merge: return .pages
         case .trim, .mute, .frame: return .media
         case .copyText, .qrRead: return .text
-        case .rename, .extract, .zip, .airdrop, .copyPath: return .share
+        case .rename, .extract, .zip, .airdrop, .copyPath, .trash: return .share
         default: return .convert
         }
     }
 
-    /// Left out of the window, where « Changer de format » (or « Une image par page ») offers it with its settings.
+    /// Left out of the window, where « Changer de format » (or « Une image par page ») offers it with its settings. The
+    /// Trash only lives on the wheel.
     func coveredInHub(_ family: WheelFamily) -> Bool {
+        if self == .trash { return true }
         switch family {
         case .image: return [.jpeg, .png, .heic, .webp].contains(self)
         case .video: return [.mp4, .mov, .mkv, .webm].contains(self)
@@ -712,6 +718,8 @@ struct WheelSettings: Codable, Equatable {
     var layouts: [String: [WheelAction]] = [:]
     /// The hint under the wheel the first few times.
     var opened = 0
+    /// « Corbeille » was put once on the wheels the user had arranged before it existed.
+    var trashAdded = true
 
     init() {}
 
@@ -732,6 +740,18 @@ struct WheelSettings: Codable, Equatable {
         let raw = try c.decodeIfPresent([String: [String]].self, forKey: .layouts) ?? [:]
         layouts = raw.mapValues { $0.compactMap(WheelAction.init(rawValue:)) }
         opened = try c.decodeIfPresent(Int.self, forKey: .opened) ?? d.opened
+        if try c.decodeIfPresent(Bool.self, forKey: .trashAdded) != true {
+            layouts = layouts.mapValues(Self.addingTrash)
+        }
+    }
+
+    /// The Trash at the end of the outer ring, within its room (the last tool steps aside when it is full).
+    static func addingTrash(_ list: [WheelAction]) -> [WheelAction] {
+        guard !list.contains(.trash) else { return list }
+        let tools = list.indices.filter { !list[$0].isFormat }
+        var out = list
+        out.insert(.trash, at: tools.count >= WheelMenu.maxTools ? tools[WheelMenu.maxTools - 1] : list.endIndex)
+        return out
     }
 
     func encode(to encoder: Encoder) throws {
@@ -748,10 +768,11 @@ struct WheelSettings: Codable, Equatable {
         try c.encodeIfPresent(lastUsed, forKey: .lastUsed)
         try c.encode(layouts.mapValues { $0.map(\.rawValue) }, forKey: .layouts)
         try c.encode(opened, forKey: .opened)
+        try c.encode(trashAdded, forKey: .trashAdded)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case enabled, instant, leaveDistance, hold, holdDelay, shake, shift, destination, folder, lastUsed, layouts, opened
+        case enabled, instant, leaveDistance, hold, holdDelay, shake, shift, destination, folder, lastUsed, layouts, opened, trashAdded
     }
 
     /// At least one way to open it.

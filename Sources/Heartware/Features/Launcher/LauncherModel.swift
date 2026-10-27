@@ -132,6 +132,9 @@ final class LauncherModel: AppModule {
     @ObservationIgnored private var apps: [LauncherApp] = []
     @ObservationIgnored private var appsIndexedAt = Date.distantPast
     @ObservationIgnored private var fileResults: [AppCommand] = []
+    /// Files whose text holds what is typed (Spotlight), under those whose name does.
+    @ObservationIgnored private var contentResults: [AppCommand] = []
+    @ObservationIgnored private var contentResultsQuery = ""
     @ObservationIgnored private var fileQuery: NSMetadataQuery?
     @ObservationIgnored private var fileObserver: NSObjectProtocol?
     @ObservationIgnored private var fileWork: DispatchWorkItem?
@@ -460,6 +463,13 @@ final class LauncherModel: AppModule {
             failures.append("index : le mot le plus long peut viser le dossier (« administratif avis » → \(first("administratif avis") ?? "rien"))")
         }
         if !LauncherFileIndex.search("zzz", in: snapshot, checkDates: false).isEmpty { failures.append("index : résultat inventé") }
+        if Self.contentPredicate("numéro siret").predicateFormat != #"kMDItemTextContent BEGINSWITH[cd] "numéro" AND kMDItemTextContent BEGINSWITH[cd] "siret""# {
+            failures.append("contenu : chaque mot doit commencer un mot du texte (\(Self.contentPredicate("numéro siret").predicateFormat))")
+        }
+        if Self.isUserFile(h + "/Library/Mail/V10/x.emlx", home: h) || Self.isUserFile(h + "/Documents/.cache/a.txt", home: h)
+            || !Self.isUserFile(h + "/Library/Mobile Documents/com~apple~CloudDocs/Kbis.pdf", home: h) || !Self.isUserFile(h + "/Documents/Kbis.pdf", home: h) {
+            failures.append("contenu : les courriels et caches doivent rester hors des résultats, iCloud Drive dedans")
+        }
         let order = LauncherFileIndex.search("fact", in: snapshot, checkDates: false).map(\.name)
         if let pre = order.firstIndex(of: "préfacture.txt"), let start = order.firstIndex(of: "Factures"), pre < start {
             failures.append("index : un nom qui commence par la recherche passe avant un nom qui la contient")
@@ -1037,6 +1047,10 @@ final class LauncherModel: AppModule {
         fileTicket.next()
         fileSettle = nil
         folderPending = false
+        if contentResultsQuery != q {
+            contentResults = []
+            contentResultsQuery = q
+        }
         if q.isEmpty {
             stopFileSearch()
             fileResults = []
@@ -1061,7 +1075,11 @@ final class LauncherModel: AppModule {
             fileResultsQuery = q
             showFileResults(instant: true)
         case .index(let snapshot):
-            stopFileSearch()
+            // The names from the index at once, the files that hold the word from Spotlight a moment later.
+            if !keepFileSearch {
+                stopFileSearch()
+                scheduleFileSearch(q, namesToo: false)
+            }
             let checkDates = !DemoData.isEnabled
             // A small index answers at once; a big one on its own queue, the keyboard never waits for it.
             if DemoData.isEnabled || Snapshot.isActive || snapshot.count < 20_000 {
@@ -1078,7 +1096,7 @@ final class LauncherModel: AppModule {
                 fileResultsQuery = q
             }
             showFileResults(instant: false)
-            if !keepFileSearch { scheduleFileSearch(q) }
+            if !keepFileSearch { scheduleFileSearch(q, namesToo: true) }
         }
     }
 
@@ -1139,7 +1157,10 @@ final class LauncherModel: AppModule {
 
     private func showFileResults(instant: Bool) {
         let ranked = fileResults.map { ($0, $0.boost + CommandRunner.frecency($0.id)) }.sorted { $0.1 > $1.1 }.map(\.0)
-        sections = ranked.isEmpty ? [] : [LauncherSection(id: "files", title: instant ? "Résultats" : "Résultats Spotlight", items: ranked)]
+        let named = Set(ranked.map(\.id))
+        let inside = contentResults.filter { !named.contains($0.id) }
+        sections = (ranked.isEmpty ? [] : [LauncherSection(id: "files", title: instant ? "Résultats" : "Résultats Spotlight", items: ranked)])
+            + (inside.isEmpty ? [] : [LauncherSection(id: "content", title: "Dans le contenu", items: inside)])
     }
 
     private func showFolder(_ folder: LauncherFolderRows) {
@@ -1233,12 +1254,10 @@ final class LauncherModel: AppModule {
         recentObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: mq, queue: nil) { [weak self] _ in
             guard let mq = ref.query else { return }
             mq.stop()
-            let library = FS.home + "/Library/"
             var found: [LauncherSpotlightHit] = []
             for i in 0..<min(mq.resultCount, 80) where found.count < 12 {
                 guard let item = mq.result(at: i) as? NSMetadataItem,
-                      let path = item.value(forAttribute: NSMetadataItemPathKey) as? String,
-                      !path.contains("/."), !path.hasPrefix(library) || path.hasPrefix(library + "Mobile Documents/") else { continue }
+                      let path = item.value(forAttribute: NSMetadataItemPathKey) as? String, Self.isUserFile(path) else { continue }
                 found.append(LauncherSpotlightHit(path: path, isDir: false))
             }
             DispatchQueue.main.async {
@@ -1300,8 +1319,22 @@ final class LauncherModel: AppModule {
 
     // MARK: Files
 
-    /// "dans facture edf": Spotlight looks inside the files too.
+    /// "dans facture edf": only Spotlight, which looks inside the files too (the index is not asked).
     static let contentPrefixes = ["dans ", "in "]
+
+    /// Not hidden, not in ~/Library (Mail, caches…), except iCloud Drive.
+    nonisolated static func isUserFile(_ path: String, home: String = FS.home) -> Bool {
+        let library = home + "/Library/"
+        return !path.contains("/.") && (!path.hasPrefix(library) || path.hasPrefix(library + "Mobile Documents/"))
+    }
+
+    /// The files whose text has a word starting with each typed word: "siret" finds "SIRET :" (a word cut at its start
+    /// would take Spotlight thirty times longer).
+    nonisolated static func contentPredicate(_ text: String) -> NSPredicate {
+        NSCompoundPredicate(andPredicateWithSubpredicates: text.split(separator: " ").map {
+            NSPredicate(format: "kMDItemTextContent BEGINSWITH[cd] %@", String($0))
+        })
+    }
 
     func isPathQuery(_ q: String) -> Bool {
         q.hasPrefix("/") || q.hasPrefix("~/") || q == "~"
@@ -1358,32 +1391,43 @@ final class LauncherModel: AppModule {
         return LauncherFolderRows(dir: dir, rows: rows.prefix(40).map { ($0.name, $0.isDir) })
     }
 
-    /// Spotlight, a moment after the last keystroke: for content searches, and while the index is not ready.
-    private func scheduleFileSearch(_ q: String) {
+    /// Spotlight, a moment after the last keystroke: the files that hold the words, and their names too while the index
+    /// is not ready (`namesToo`).
+    private func scheduleFileSearch(_ q: String, namesToo: Bool) {
         fileWork?.cancel()
-        let content = Self.contentPrefixes.first { q.lowercased().hasPrefix($0) }
-        let text = content.map { String(q.dropFirst($0.count)).trimmingCharacters(in: .whitespaces) } ?? q
+        let prefix = Self.contentPrefixes.first { q.lowercased().hasPrefix($0) }
+        let text = prefix.map { String(q.dropFirst($0.count)).trimmingCharacters(in: .whitespaces) } ?? q
         // Three letters at least: fewer would ask Spotlight for nearly every file (and their content).
         guard text.count >= 3, !DemoData.isEnabled, !q.hasPrefix(":") else {
-            if !fileResults.isEmpty { fileResults = [] }
+            if namesToo, !fileResults.isEmpty { fileResults = [] }
+            if DemoData.isEnabled, text.count >= 3 {
+                contentResults = LauncherDemoFiles.containing(text).enumerated().map { i, path in
+                    fileKinds[path] = false
+                    return fileCommand(path, isDir: false, boost: 600 - Double(i) * 5)
+                }
+            }
             fileSearchPending = false
             return
         }
         let work = DispatchWorkItem { [weak self] in
-            MainActor.assumeIsolated { self?.searchSpotlight(text, query: q, content: content != nil) }
+            MainActor.assumeIsolated { self?.searchSpotlight(text, query: q, namesToo: namesToo) }
         }
         fileWork = work
         fileSearchPending = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
     }
 
-    private func searchSpotlight(_ text: String, query q: String, content: Bool) {
+    private func searchSpotlight(_ text: String, query q: String, namesToo: Bool) {
         stopSpotlight(fileQuery)
         if let fileObserver { NotificationCenter.default.removeObserver(fileObserver) }
         let mq = NSMetadataQuery()
-        mq.predicate = content
-            ? NSPredicate(format: "(kMDItemTextContent CONTAINS[cd] %@ OR kMDItemDisplayName CONTAINS[cd] %@) AND NOT (kMDItemContentType == 'com.apple.application-bundle')", text, text)
-            : NSPredicate(format: "kMDItemDisplayName CONTAINS[cd] %@ AND NOT (kMDItemContentType == 'com.apple.application-bundle')", text)
+        let content = Self.contentPredicate(text)
+        let wanted = namesToo
+            ? NSCompoundPredicate(orPredicateWithSubpredicates: [content, NSPredicate(format: "kMDItemDisplayName CONTAINS[cd] %@", text)])
+            : content
+        mq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            wanted, NSPredicate(format: "NOT (kMDItemContentType == 'com.apple.application-bundle')")
+        ])
         mq.searchScopes = [NSMetadataQueryUserHomeScope]
         mq.sortDescriptors = [NSSortDescriptor(key: "kMDItemLastUsedDate", ascending: false)]
         // Gathered and sorted on the Spotlight queue: thousands of matches never weigh on the main thread.
@@ -1392,21 +1436,35 @@ final class LauncherModel: AppModule {
         fileObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: mq, queue: nil) { [weak self] _ in
             guard let mq = ref.query else { return }
             mq.stop()
-            var found: [LauncherSpotlightHit] = []
-            for i in 0..<min(mq.resultCount, 30) {
+            let folded = Fuzzy.fold(text)
+            var named: [LauncherSpotlightHit] = [], inside: [LauncherSpotlightHit] = []
+            for i in 0..<min(mq.resultCount, 300) where named.count + inside.count < 30 {
                 guard let item = mq.result(at: i) as? NSMetadataItem,
                       let path = item.value(forAttribute: NSMetadataItemPathKey) as? String else { continue }
-                found.append(LauncherSpotlightHit(path: path, isDir: (item.value(forAttribute: "kMDItemContentType") as? String) == "public.folder"))
+                let hit = LauncherSpotlightHit(path: path, isDir: (item.value(forAttribute: "kMDItemContentType") as? String) == "public.folder")
+                if namesToo, Fuzzy.fold((path as NSString).lastPathComponent).contains(folded) {
+                    named.append(hit)
+                } else if Self.isUserFile(path) {
+                    // The text of mails and caches would bury the user's documents.
+                    inside.append(hit)
+                }
             }
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     guard let self, let current = self.fileQuery, current === ref.query,
                           self.query.trimmingCharacters(in: .whitespaces) == q else { return }
-                    self.fileResults = found.enumerated().map { i, hit in
-                        self.fileKinds[hit.path] = hit.isDir
-                        return self.fileCommand(hit.path, isDir: hit.isDir, boost: (content ? 600 : 300) - Double(i) * 5)
+                    @MainActor func commands(_ hits: [LauncherSpotlightHit], _ boost: Double) -> [AppCommand] {
+                        hits.enumerated().map { i, hit in
+                            self.fileKinds[hit.path] = hit.isDir
+                            return self.fileCommand(hit.path, isDir: hit.isDir, boost: boost - Double(i) * 5)
+                        }
                     }
-                    self.fileResultsQuery = q
+                    if namesToo {
+                        self.fileResults = commands(named, 300)
+                        self.fileResultsQuery = q
+                    }
+                    self.contentResults = commands(inside, 600)
+                    self.contentResultsQuery = q
                     self.fileSearchPending = false
                     self.refreshKeepingSelection()
                 }

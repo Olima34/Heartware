@@ -473,7 +473,7 @@ struct LauncherFilesEmpty: View {
                 Text("Tape le nom d'un fichier ou d'un dossier.").font(.ui(14, .medium)).foregroundStyle(Theme.text)
                 VStack(alignment: .leading, spacing: 7) {
                     tip("~/Documents/", "parcourt tes dossiers (⇥ entre dans le dossier choisi)")
-                    tip("dans devis cuisine", "cherche aussi dans le contenu des fichiers")
+                    tip("siret", "trouve aussi les fichiers qui contiennent ce mot")
                     tip("⌘K", "les actions du fichier choisi : ouvrir avec, convertir, partager, mettre à la corbeille…")
                     tip("⌘-clic", "choisit plusieurs fichiers (⌘↩ au clavier) ; glisse-les, ils sont copiés là où tu les lâches")
                 }
